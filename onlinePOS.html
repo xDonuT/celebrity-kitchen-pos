@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <title>Celebrity Kitchen POS (Firebase)</title>
+
+
+
+  <!-- Google Font: Inter -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+
+
+
+  <!-- Firebase SDKs -->
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+
+
+  <link rel="stylesheet" href="style.css" />
+
+</head>
+
+<body>
+
+
+
+  <!-- ===== CONNECTION STATUS ===== -->
+
+  <div class="connection-status" id="connection-status">☁️ Connecting to Firebase...</div>
+
+
+
+  <!-- ===== MAIN WRAPPER ===== -->
+
+  <div class="wrapper">
+
+    <div class="main-content" id="main-content">
+
+
+
+      <!-- ===== CASHIER VIEW ===== -->
+
+      <div class="cashier-view walkin-mode" id="cashier-view">
+
+        <div class="order-info-section walkin-mode">
+
+          <div class="section-title">
+
+            📋 Order Information
+
+            <span class="mode-badge walkin">🚶 WALK-IN</span>
+
+          </div>
+
+          <div class="order-info-row">
+
+            <input type="text" class="order-input" id="order-number" placeholder="Order Number" />
+
+            <select class="order-type-select" id="order-type">
+
+              <option value="walkin">Walk-in</option>
+
+              <option value="tawag">Tawag</option>
+
+            </select>
+
+            <input type="text" class="order-input" id="customer-name" placeholder="Customer Name" style="display:none;" />
+
+            <input type="time" class="time-input" id="pickup-time" style="display:none;" />
+
+          </div>
+
+          <div class="order-info-row">
+
+            <textarea class="notes-input" id="order-notes" placeholder="Special instructions"></textarea>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="cashier-split-screen">
+
+          <div class="food-grid-container">
+
+            <div class="section-title">🍽️ Menu</div>
+
+            <div class="food-grid" id="food-grid"></div>
+
+          </div>
+
+          <div class="order-cart-container">
+
+            <div class="order-section">
+
+              <div class="section-title">🛒 Your Order</div>
+
+              <div class="cart-items" id="cart-items"></div>
+
+              <div class="total-bar">
+
+                <span class="total-amount" id="total-display">Total: ₱0</span>
+
+                <button class="btn-proceed" id="btn-cash-payment" onclick="openPayment('Cash')">💵 Cash</button>
+
+                <button class="btn-proceed btn-gcash-pay" id="btn-gcash-payment" onclick="openPayment('GCash')">📱 GCash</button>
+
+                <button class="btn-proceed btn-split-pay" id="btn-split-payment" onclick="openSplitPayment()" style="background:#6d5a8a;">🔀 Split</button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ===== PENDING VIEW ===== -->
+
+      <div class="pending-view" id="pending-view">
+
+        <div class="order-queue">
+
+          <div class="section-title">📞 Pending Orders</div>
+
+          <div id="pending-orders"></div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ===== KITCHEN VIEW ===== -->
+
+      <div class="kitchen-view" id="kitchen-view">
+
+        <div class="order-queue">
+
+          <div class="section-title">🍳 Kitchen Orders</div>
+
+          <div id="kitchen-all-orders"></div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ===== PBQ VIEW ===== -->
+
+      <div class="pbq-view" id="pbq-view">
+
+        <div class="order-queue">
+
+          <div class="section-title">🍖 PBQ Orders</div>
+
+          <div id="pbq-all-orders"></div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ===== ADMIN VIEW ===== -->
+
+      <div class="admin-view" id="admin-view">
+
+        <div class="order-queue">
+
+          <span class="admin-close" onclick="switchTab('more')">×</span>
+
+          <div class="section-title">⚙️ Admin Settings</div>
+
+          <div id="admin-settings">
+
+            <div id="admin-items-list"></div>
+
+            <div class="admin-add-item">
+
+              <input type="text" id="admin-new-name" placeholder="Item Name" />
+
+              <input type="number" id="admin-new-price" placeholder="Price" />
+
+              <select class="admin-category-select" id="admin-new-category">
+
+                <option value="Kitchen">Kitchen</option>
+
+                <option value="PBQ">PBQ</option>
+
+              </select>
+
+              <button class="btn-add-item" onclick="addMenuItem()">➕ Add Item</button>
+
+            </div>
+
+            <div class="admin-note">💡 Changes save automatically to Firebase. All phones update instantly!</div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ===== MORE VIEW ===== -->
+
+      <div class="more-view" id="more-view">
+
+        <div class="more-options">
+
+          <div class="more-option" onclick="toggleTheme()">
+
+            <div class="more-icon">🌙</div>
+
+            <div class="more-label">Dark Mode</div>
+
+            <div class="toggle-switch" id="theme-switch">
+
+              <div class="toggle-slider"></div>
+
+            </div>
+
+          </div>
+
+          <div class="more-option" onclick="toggleSound()">
+
+            <div class="more-icon">🔊</div>
+
+            <div class="more-label">Sound</div>
+
+            <div class="toggle-switch active" id="sound-switch">
+
+              <div class="toggle-slider"></div>
+
+            </div>
+
+          </div>
+
+          <div class="more-option" onclick="showHistory()">
+
+            <div class="more-icon">📋</div>
+
+            <div class="more-label">Transaction History</div>
+
+          </div>
+
+          <div class="more-option" onclick="clearHistory()">
+
+            <div class="more-icon">🗑️</div>
+
+            <div class="more-label">Clear All Data</div>
+
+          </div>
+
+          <div class="more-option" onclick="showSummary()">
+
+            <div class="more-icon">📊</div>
+
+            <div class="more-label">Sales Summary</div>
+
+          </div>
+
+          <div class="more-option" onclick="endOfDay()">
+
+            <div class="more-icon">📥</div>
+
+            <div class="more-label">End of Day (Export &amp; Clear)</div>
+
+          </div>
+
+          <div class="more-option" onclick="switchTab('admin')">
+
+            <div class="more-icon">⚙️</div>
+
+            <div class="more-label">Admin Settings</div>
+
+          </div>
+
+          <div class="more-option" onclick="showAppInfo()">
+
+            <div class="more-icon">ℹ️</div>
+
+            <div class="more-label">About</div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ===== BOTTOM NAVIGATION ===== -->
+
+    <div class="tab-navigation">
+
+      <button class="tab-btn active" data-tab="cashier" onclick="switchTab('cashier', this)">
+
+        <span class="tab-icon">🛒</span>Cashier
+
+      </button>
+
+      <button class="tab-btn" data-tab="pending" onclick="switchTab('pending', this)">
+
+        <span class="tab-icon">📞</span>Pending
+
+      </button>
+
+      <button class="tab-btn" data-tab="kitchen" onclick="switchTab('kitchen', this)">
+
+        <span class="tab-icon">🍳</span>Kitchen
+
+      </button>
+
+      <button class="tab-btn" data-tab="pbq" onclick="switchTab('pbq', this)">
+
+        <span class="tab-icon">🍖</span>PBQ
+
+      </button>
+
+      <button class="tab-btn" data-tab="more" onclick="switchTab('more', this)">
+
+        <span class="tab-icon">⋯</span>More
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Payment Modal -->
+
+  <div class="modal" id="payment-modal">
+
+    <div class="modal-content">
+
+      <span class="close-modal" onclick="closePayment()">×</span>
+
+      <div class="section-title" id="payment-title-label">💵 Payment</div>
+
+      <div class="payment-info">
+
+        <div>
+
+          <div class="payment-label">Total</div>
+
+          <div class="payment-value" id="payment-total">₱0</div>
+
+        </div>
+
+        <div>
+
+          <div class="payment-label">Paid</div>
+
+          <div class="payment-value" id="payment-paid">₱0</div>
+
+        </div>
+
+        <div>
+
+          <div class="payment-label">Change</div>
+
+          <div class="payment-value" id="payment-change">₱0</div>
+
+        </div>
+
+      </div>
+
+      <div class="eco-bag-controls">
+
+        <button class="btn-exact-compact" onclick="setExactAmount()">Exact</button>
+
+        <button class="btn-eco-bag" id="eco-bag-btn" onclick="addEcoBag()">Bag ₱5</button>
+
+        <button class="btn-eco-small btn-eco-minus" onclick="removeEcoBag()">−</button>
+
+        <button class="btn-eco-small" onclick="addEcoBag()">+</button>
+
+      </div>
+
+      <div id="split-controls" style="display:none;">
+
+        <div class="split-help">1️⃣ Tap <strong>📱 GCash</strong> and enter what they pay via GCash.<br>2️⃣ Tap <strong>💵 Cash</strong> and enter the cash they hand you.<br>3️⃣ Press <strong>Calculate</strong> when both are in.</div>
+
+        <div class="split-toggle">
+
+          <button class="split-toggle-btn active" id="split-toggle-gcash" onclick="setSplitField('gcash')">📱 GCash</button>
+
+          <button class="split-toggle-btn" id="split-toggle-cash" onclick="setSplitField('cash')">💵 Cash</button>
+
+        </div>
+
+        <div class="split-box">
+
+          <div class="section-title" id="split-field-label">📱 GCash Amount</div>
+
+          <div class="split-field-display" id="split-field-display">₱0</div>
+
+        </div>
+
+        <div class="split-box split-cash-box">
+
+          <div class="section-title" id="split-cash-label">💵 Cash Required</div>
+
+          <div class="payment-value" id="split-cash-required" style="text-align:center;color:var(--success);font-size:1.2rem;">₱0</div>
+
+        </div>
+
+      </div>
+
+      <div id="cash-calculator-controls">
+
+        <div class="quick-amounts-compact">
+
+          <div class="quick-amount" onclick="addQuickAmount(20)">₱20</div>
+
+          <div class="quick-amount" onclick="addQuickAmount(50)">₱50</div>
+
+          <div class="quick-amount" onclick="addQuickAmount(100)">₱100</div>
+
+          <div class="quick-amount" onclick="addQuickAmount(200)">₱200</div>
+
+          <div class="quick-amount" onclick="addQuickAmount(500)">₱500</div>
+
+          <div class="quick-amount" onclick="addQuickAmount(1000)">₱1000</div>
+
+        </div>
+
+        <div class="compact-calculator" id="compact-calculator"></div>
+
+      </div>
+
+      <div class="payment-actions">
+
+        <button class="btn-pending-action" onclick="saveAsPending()">Save Pending</button>
+
+        <button class="btn-proceed" id="main-submit-pay-btn" onclick="handlePaymentSubmission()">Calculate</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- Result Modal -->
+
+  <div class="modal" id="result-modal">
+
+    <div class="modal-content">
+
+      <span class="close-modal" onclick="closeResult()">×</span>
+
+      <div class="section-title">💰 Change</div>
+
+      <div class="result-change" id="result-change">₱0</div>
+
+      <div id="suggestion-list"></div>
+
+      <button class="btn-proceed" id="btn-complete-transaction" onclick="completeTransaction()" style="width:100%;margin-top:12px;">✅ Done</button>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- History Modal -->
+
+  <div class="modal" id="history-modal">
+
+    <div class="modal-content">
+
+      <span class="close-modal" onclick="closeHistory()">×</span>
+
+      <div class="section-title">📋 History</div>
+
+      <div id="history-list"></div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- Summary Modal -->
+
+  <div class="modal" id="summary-modal">
+
+    <div class="modal-content">
+
+      <span class="close-modal" onclick="closeSummary()">×</span>
+
+      <div class="section-title">📊 Summary</div>
+
+      <select id="summary-filter" onchange="showSummary()" style="width:100%;padding:8px;border-radius:8px;margin-bottom:10px;">
+
+        <option value="all">All Channels</option>
+
+        <option value="walkin">Walk-in Only</option>
+
+        <option value="tawag">Tawag Only</option>
+
+        <option value="gcash">GCash Only</option>
+
+        <option value="split">Split (GCash + Cash)</option>
+
+      </select>
+
+      <button onclick="exportSummary()" style="width:100%;padding:8px;background:#4caf50;color:white;border:none;border-radius:8px;margin-bottom:10px;">📥 Export CSV</button>
+
+      <div id="summary-grid"></div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- About Modal -->
+
+  <div class="modal" id="app-info-modal">
+
+    <div class="modal-content">
+
+      <span class="close-modal" onclick="closeAppInfo()">×</span>
+
+      <div class="section-title">📖 About</div>
+
+      <div class="app-info-content">
+
+        <p class="app-title">Celebrity Kitchen POS</p>
+
+        <p>Celebrity Kitchen POS is the official point-of-sale system developed for <strong>Celebrity Kitchen</strong> to simplify daily restaurant operations. Designed with speed, reliability, and ease of use in mind, it helps staff process orders efficiently while keeping the cashier, kitchen, and BBQ stations synchronized in real time.</p>
+
+        <p>The system supports order management, payment processing, menu administration, transaction history, and sales reporting through a simple and user-friendly interface.</p>
+
+        <hr />
+
+        <p class="features-title">✨ Features</p>
+
+        <ul>
+
+          <li>Real-time order synchronization</li>
+
+          <li>Multi-device support</li>
+
+          <li>Cash &amp; GCash payment processing</li>
+
+          <li>Kitchen &amp; BBQ order management</li>
+
+          <li>Pending order tracking</li>
+
+          <li>Transaction history</li>
+
+          <li>Sales summary and CSV export</li>
+
+          <li>Menu and price management</li>
+
+          <li>Dark mode</li>
+
+          <li>Automatic cloud data synchronization</li>
+
+        </ul>
+
+        <hr />
+
+        <p class="app-version"><strong>Version:</strong> 2.0.1<br /><strong>Developed by</strong> Donut Systems<br />© 2026 Donut Systems. All rights reserved.</p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ===== TOAST NOTIFICATION ===== -->
+
+  <div class="toast" id="toast">
+
+    <div id="toastMsg">✅ Order saved as pending!</div>
+
+    <div class="toast-sub" id="toastSub">📞 Order is now in Pending</div>
+
+  </div>
+
+
+
+  <!-- ===== PBQ QUANTITY BOX (Created Dynamically) ===== -->
+
+  <div id="pbq-box-container"></div>
+
+
+
+  <!-- ===== JAVASCRIPT ===== -->
+
+  <script src="app.js"></script>
+
+
+
+</body>
+
+</html>

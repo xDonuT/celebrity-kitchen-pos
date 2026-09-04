@@ -210,16 +210,23 @@
     // ============================================================
     let pbqQuantity = 1; // kept for potential use
     function openPbqBox() {
+      const overlay = document.getElementById('pbqOverlay');
       const box = document.getElementById('pbqBox');
-      if (box) {
+      if (overlay) {
+        overlay.classList.add('active');
+        document.getElementById('pbqQty').value = 1;
+        setTimeout(() => document.getElementById('pbqQty').focus(), 100);
+      } else if (box) {
         box.classList.add('active');
         document.getElementById('pbqQty').value = 1;
         setTimeout(() => document.getElementById('pbqQty').focus(), 100);
       }
     }
     function closePbqBox() {
+      const overlay = document.getElementById('pbqOverlay');
       const box = document.getElementById('pbqBox');
-      if (box) box.classList.remove('active');
+      if (overlay) overlay.classList.remove('active');
+      else if (box) box.classList.remove('active');
     }
     function adjustPbq(amount) {
       const input = document.getElementById('pbqQty');
@@ -327,6 +334,12 @@
       let pbqBox = document.getElementById('pbqBox');
       if (!pbqBox) {
         const container = document.getElementById('pbq-box-container');
+        const overlay = document.createElement('div');
+        overlay.className = 'pbq-overlay';
+        overlay.id = 'pbqOverlay';
+        overlay.onclick = function(e) {
+          if (e.target === overlay) closePbqBox();
+        };
         const box = document.createElement('div');
         box.className = 'pbq-box';
         box.id = 'pbqBox';
@@ -342,7 +355,8 @@
             <button class="btn-add" onclick="addPbqFromBox()">✅ Add</button>
           </div>
         `;
-        container.appendChild(box);
+        overlay.appendChild(box);
+        container.appendChild(overlay);
         document.getElementById('pbqQty').addEventListener('keydown', function(e) {
           if (e.key === 'Enter') addPbqFromBox();
         });

@@ -38,6 +38,8 @@
     let activePaymentMethod = 'Cash';
     let gcashAmount = 0;
     let splitPayment = false;
+    let ordersRenderTimer = null;
+    let currentTab = 'cashier';
     let splitField = 'gcash';
     let editingOrderId = null;
     let menuItems = [];
@@ -1194,7 +1196,11 @@
         } else {
           currentOrders = [];
         }
-        updateAllDisplays();
+        if (ordersRenderTimer) clearTimeout(ordersRenderTimer);
+        ordersRenderTimer = setTimeout(() => {
+          ordersRenderTimer = null;
+          updateAllDisplays();
+        }, 120);
       }, (error) => {
         console.error('Firebase listen error:', error);
         updateConnectionStatus(false);
@@ -1204,9 +1210,9 @@
       });
     }
     function updateAllDisplays() {
-      updatePendingDisplay();
-      updateKitchenDisplay();
-      updatePbqDisplay();
+      if (currentTab === 'pending') updatePendingDisplay();
+      else if (currentTab === 'kitchen') updateKitchenDisplay();
+      else if (currentTab === 'pbq') updatePbqDisplay();
     }
     function updatePendingDisplay() {
       const c = document.getElementById('pending-orders');
@@ -1602,6 +1608,10 @@
       if (tab === 'admin') {
         renderAdminMenu();
       }
+      currentTab = tab;
+      if (tab === 'pending') updatePendingDisplay();
+      else if (tab === 'kitchen') updateKitchenDisplay();
+      else if (tab === 'pbq') updatePbqDisplay();
     }
     // ============================================================
     // THEME & SOUND
@@ -1630,6 +1640,12 @@
     // INITIALIZATION
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
+      // Low-performance device detection (old/slow phones): reduce heavy animations
+      try {
+        const cores = navigator.hardwareConcurrency || 8;
+        const mem = navigator.deviceMemory || 8;
+        if (cores <= 2 || mem <= 2) document.body.classList.add('low-perf');
+      } catch (e) {}
       // Build compact calculator
       const calc = document.getElementById('compact-calculator');
       [

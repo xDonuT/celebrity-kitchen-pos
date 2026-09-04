@@ -50,7 +50,6 @@
       height: 100vh;
       margin: auto;
       background: var(--bg-white);
-      backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -1517,4 +1516,38 @@
     }
     .vibrate {
       animation: vibrate 0.1s ease 2;
+    }
+    /* ===== LOW PERFORMANCE DEVICES ===== */
+    body.low-perf .btn-food,
+    body.low-perf .btn-proceed,
+    body.low-perf .btn-status,
+    body.low-perf .tab-btn,
+    body.low-perf .btn-quantity,
+    body.low-perf .btn-adjust,
+    body.low-perf .quick-amount,
+    body.low-perf .calc-btn-compact {
+      transition: none !important;
+      animation: none !important;
+    }
+    body.low-perf .btn-food {
+      transform: none !important;
+      perspective: none !important;
+    }
+    body.low-perf .btn-food:active {
+      transform: scale(0.97) !important;
+    }
+    body.low-perf .food-icon {
+      animation: none !important;
+    }
+    body.low-perf .vibrate {
+      animation: none !important;
+    }
+    body.low-perf * {
+      box-shadow: none !important;
+    }
+    body.low-perf .modal-content {
+      animation: none !important;
+    }
+    body.low-perf .pbq-box {
+      animation: none !important;
     }

@@ -1035,7 +1035,14 @@
         return;
       }
       if (ot === 'tawag' && !document.getElementById('customer-name').value.trim()) {
+        if (document.getElementById('payment-modal').classList.contains('show')) closePayment();
+        const nameInput = document.getElementById('customer-name');
+        nameInput.style.display = 'block';
+        nameInput.classList.add('field-error');
+        nameInput.focus();
+        nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
         showToast('❌ Missing Customer Name', 'Please enter a customer name for Tawag', 'error');
+        setTimeout(() => nameInput.classList.remove('field-error'), 2500);
         isProcessing = false;
         return;
       }
@@ -1204,9 +1211,29 @@
     function updatePendingDisplay() {
       const c = document.getElementById('pending-orders');
       const pending = currentOrders.filter(o => o.type === 'pending' || o.paid === false);
+      const bar = document.getElementById('pending-total-bar');
       if (pending.length === 0) {
         c.innerHTML = '<div style="text-align:center;color:#8a6dcc;padding:20px;">No pending orders</div>';
+        if (bar) bar.style.display = 'none';
         return;
+      }
+      let walkinTotal = 0, tawagTotal = 0, walkinCount = 0, tawagCount = 0;
+      let grandTotal = 0;
+      pending.forEach(o => {
+        const t = o.total || 0;
+        grandTotal += t;
+        if ((o.orderType || o.type || 'walkin') === 'tawag') { tawagTotal += t; tawagCount++; }
+        else { walkinTotal += t; walkinCount++; }
+      });
+      if (bar) {
+        bar.style.display = 'block';
+        bar.innerHTML =
+          '<div class="summary-headline">Total Unpaid: ₱' + formatNumber(grandTotal) + '</div>' +
+          '<div class="summary-sub">' + pending.length + ' order' + (pending.length > 1 ? 's' : '') + ' awaiting payment</div>' +
+          '<div class="summary-items">' +
+          '<span class="summary-item">🏃 Walk-in: ₱' + formatNumber(walkinTotal) + ' (' + walkinCount + ')</span>' +
+          '<span class="summary-item">📞 Tawag: ₱' + formatNumber(tawagTotal) + ' (' + tawagCount + ')</span>' +
+          '</div>';
       }
       c.innerHTML = pending.map(o => {
         const displayName = o.customerName || (o.orderType === 'tawag' ? 'Tawag Guest' : 'Walk-in #' + (o.number || ''));
@@ -1248,9 +1275,31 @@
         const kitchenDone = o.kitchenCompleted === true;
         return hasKitchenItems && !kitchenDone && (o.paid !== false); // only paid orders (or pending? we show all non-completed)
       });
+      const bar = document.getElementById('kitchen-total-bar');
       if (kitchenOrders.length === 0) {
         c.innerHTML = '<div style="text-align:center;color:#8a6dcc;padding:20px;">No kitchen orders</div>';
+        if (bar) bar.style.display = 'none';
         return;
+      }
+      const itemCounts = {};
+      let totalItems = 0;
+      kitchenOrders.forEach(o => {
+        (o.items || []).forEach(i => {
+          if ((i.category || 'Kitchen') !== 'PBQ') {
+            const q = Number(i.quantity) || 1;
+            itemCounts[i.name] = (itemCounts[i.name] || 0) + q;
+            totalItems += q;
+          }
+        });
+      });
+      if (bar) {
+        bar.style.display = 'block';
+        const chipHtml = Object.keys(itemCounts).map(n =>
+          '<span class="summary-item">' + safeDisplay(n) + ' ×' + itemCounts[n] + '</span>'
+        ).join('');
+        bar.innerHTML =
+          '<div class="summary-headline">🍳 To cook: ' + totalItems + ' item' + (totalItems > 1 ? 's' : '') + '</div>' +
+          '<div class="summary-items">' + chipHtml + '</div>';
       }
       c.innerHTML = kitchenOrders.map(o => {
         const ot = o.orderType || o.type || 'walkin';
@@ -1287,7 +1336,30 @@
       });
       if (pbqOrders.length === 0) {
         c.innerHTML = '<div style="text-align:center;color:#8a6dcc;padding:20px;">No PBQ orders</div>';
+        const bar = document.getElementById('pbq-total-bar');
+        if (bar) bar.style.display = 'none';
         return;
+      }
+      const bar = document.getElementById('pbq-total-bar');
+      const pbqCounts = {};
+      let pbqTotal = 0;
+      pbqOrders.forEach(o => {
+        (o.items || []).forEach(i => {
+          if ((i.category || 'Kitchen') === 'PBQ') {
+            const q = Number(i.quantity) || 1;
+            pbqCounts[i.name] = (pbqCounts[i.name] || 0) + q;
+            pbqTotal += q;
+          }
+        });
+      });
+      if (bar) {
+        bar.style.display = 'block';
+        const chipHtml = Object.keys(pbqCounts).map(n =>
+          '<span class="summary-item">' + safeDisplay(n) + ' ×' + pbqCounts[n] + '</span>'
+        ).join('');
+        bar.innerHTML =
+          '<div class="summary-headline">🍢 PBQ to cook: ' + pbqTotal + ' item' + (pbqTotal > 1 ? 's' : '') + '</div>' +
+          '<div class="summary-items">' + chipHtml + '</div>';
       }
       c.innerHTML = pbqOrders.map(o => {
         const ot = o.orderType || o.type || 'walkin';
@@ -1297,7 +1369,7 @@
           <div class="order-header"><span class="order-number">${safeDisplay(displayName)} ${paidBadge}</span><span class="order-type ${ot}">${ot === 'walkin' ? 'WALK-IN' : 'TAWAG'}</span></div>
           <div class="order-time"><span class="clock-emoji">🕐</span> ${o.timestamp || ''}${o.customerName ? ' | 👤 ' + safeDisplay(o.customerName) : ''}${o.pickupTime ? ' | ⏰ ' + safeDisplay(o.pickupTime) : ''}</div>
           ${o.notes ? '<div class="order-notes">' + safeDisplay(o.notes) + '</div>' : ''}
-          <div class="order-items">${(o.items || []).map(i => '<div class="order-item"><span>' + safeDisplay(i.name) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
+          <div class="order-items">${(o.items || []).map(i => i.category !== 'PBQ' ? '' : '<div class="order-item"><span>' + safeDisplay(i.name) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
           <div class="order-actions"><button class="btn-status btn-complete" data-section="pbq">✓ Complete</button></div>
         </div>`;
       }).join('');

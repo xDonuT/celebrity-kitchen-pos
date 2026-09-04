@@ -1089,16 +1089,6 @@
     .dark-mode .split-field-display { color: var(--primary-light); }
     .split-cash-box { border-color: rgba(76, 175, 80, 0.4); }
     .split-cash-box .section-title { color: var(--success); }
-    .split-help {
-      font-size: 0.75rem;
-      line-height: 1.5;
-      background: rgba(138, 109, 204, 0.1);
-      border-radius: var(--radius-sm);
-      padding: 10px;
-      margin-bottom: 8px;
-      color: var(--primary-dark);
-    }
-    .dark-mode .split-help { color: var(--primary-light); }
     /* ===== PAYMENT ACTIONS ===== */
     .payment-actions {
       display: flex;

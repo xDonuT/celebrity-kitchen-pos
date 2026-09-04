@@ -1097,11 +1097,17 @@
       if (!order) return;
       currentTotal = order.total || 0;
       paidAmount = 0;
+      gcashAmount = 0;
+      splitPayment = false;
       editingOrderId = id;
       orderCart = order.items ? [...order.items] : [];
       ecoBagQuantity = order.ecoBags || 0;
       switchTab('cashier');
-      openPayment(method);
+      if (method === 'Split') {
+        openSplitPayment();
+      } else {
+        openPayment(method);
+      }
     }
     function cancelOrder(id) {
       if (!confirm('Cancel this order?')) return;
@@ -1213,6 +1219,7 @@
           <div class="order-actions">
             <button class="btn-status btn-collect-payment" data-method="Cash">Collect Cash</button>
             <button class="btn-status btn-collect-payment btn-gcash-pay" data-method="GCash" style="background:#007cfe;">Collect GCash</button>
+            <button class="btn-status btn-collect-payment" data-method="Split" style="background:#6d5a8a;">Collect Split</button>
             <button class="btn-status btn-cancel">Cancel</button>
           </div>
         </div>`;

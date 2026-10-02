@@ -404,11 +404,14 @@
             addPbqTap();
           });
         }
-        document.addEventListener('click', function(e) {
-          if (!e.target.closest('.pbq-box') && !e.target.closest('.pbq-badge') && !e.target.closest('#pbqBtn')) {
-            closePbqBox();
-          }
-        });
+        if (!document._pbqDocBound) {
+          document._pbqDocBound = true;
+          document.addEventListener('click', function(e) {
+            if (!e.target.closest('.pbq-box') && !e.target.closest('.pbq-badge') && !e.target.closest('#pbqBtn')) {
+              closePbqBox();
+            }
+          });
+        }
       }, 50);
     }
     function renderAdminMenu() {
@@ -418,7 +421,15 @@
         list.innerHTML = '<div style="text-align:center;color:#8a6dcc;padding:20px;">No menu items</div>';
         return;
       }
-      list.innerHTML = menuItems.map(item => `
+      const aTerm = getTabSearch('admin');
+      const visibleAdmin = menuItems.filter(item => menuItemMatchesSearch(item, aTerm));
+      if (visibleAdmin.length === 0) {
+        list.innerHTML = menuItems.length === 0
+          ? '<div style="text-align:center;color:#8a6dcc;padding:20px;">No menu items</div>'
+          : noResultsMarkup('admin', 'No items match your search');
+        return;
+      }
+      list.innerHTML = visibleAdmin.map(item => `
         <div class="admin-item" data-id="${item.id}">
           <span class="admin-icon">${item.icon || '🍽️'}</span>
           <input type="text" class="admin-name-input" value="${safeDisplay(item.name)}" placeholder="Name">
@@ -1216,10 +1227,15 @@
     }
     function updatePendingDisplay() {
       const c = document.getElementById('pending-orders');
-      const pending = currentOrders.filter(o => o.type === 'pending' || o.paid === false);
+      const allPending = currentOrders.filter(o => o.type === 'pending' || o.paid === false);
+      const term = getTabSearch('pending');
+      const pending = allPending.filter(o => orderMatchesSearch(o, term) && orderMatchesTypeFilter(o, 'pending'));
       const bar = document.getElementById('pending-total-bar');
+      updateTypeFilterCount('pending', pending.length, allPending.length);
       if (pending.length === 0) {
-        c.innerHTML = '<div style="text-align:center;color:#8a6dcc;padding:20px;">No pending orders</div>';
+        c.innerHTML = allPending.length === 0
+          ? '<div style="text-align:center;color:#8a6dcc;padding:20px;">No pending orders</div>'
+          : noResultsMarkup('pending', 'No pending orders match your search');
         if (bar) bar.style.display = 'none';
         return;
       }
@@ -1244,10 +1260,10 @@
       c.innerHTML = pending.map(o => {
         const displayName = o.customerName || (o.orderType === 'tawag' ? 'Tawag Guest' : 'Walk-in #' + (o.number || ''));
         return `<div class="order-card" data-order-id="${o.id}">
-          <div class="order-header"><span class="order-number">${safeDisplay(displayName)}</span><span class="order-type ${o.orderType || 'walkin'}">${o.orderType === 'tawag' ? 'TAWAG' : 'WALK-IN'}</span></div>
+          <div class="order-header"><span class="order-number">${highlightMatch(displayName, term)}</span><span class="order-type ${o.orderType || 'walkin'}">${o.orderType === 'tawag' ? 'TAWAG' : 'WALK-IN'}</span></div>
           <div class="order-time"><span class="clock-emoji">🕐</span> ${o.timestamp || ''}${o.customerName ? ' | 👤 ' + safeDisplay(o.customerName) : ''}${o.pickupTime ? ' | ⏰ ' + safeDisplay(o.pickupTime) : ''}</div>
           ${o.notes ? '<div class="order-notes">' + safeDisplay(o.notes) + '</div>' : ''}
-          <div class="order-items">${(o.items || []).map(i => '<div class="order-item"><span>' + safeDisplay(i.name) + '</span><span>×' + i.quantity + '</span></div>').join('')}${o.ecoBags > 0 ? '<div class="order-item"><span>Eco Bag</span><span>×' + o.ecoBags + '</span></div>' : ''}</div>
+          <div class="order-items">${(o.items || []).map(i => '<div class="order-item"><span>' + highlightMatch(i.name, term) + '</span><span>×' + i.quantity + '</span></div>').join('')}${o.ecoBags > 0 ? '<div class="order-item"><span>Eco Bag</span><span>×' + o.ecoBags + '</span></div>' : ''}</div>
           <div class="order-total">Total: ₱${formatNumber(o.total || 0)}</div>
           <div class="order-actions">
             <button class="btn-status btn-collect-payment" data-method="Cash">Collect Cash</button>
@@ -1275,18 +1291,24 @@
     function updateKitchenDisplay() {
       const c = document.getElementById('kitchen-all-orders');
       // Show orders that have kitchen items and kitchen is not completed
-      const kitchenOrders = currentOrders.filter(o => {
+      const allKitchenOrders = currentOrders.filter(o => {
         const items = o.items || [];
         const hasKitchenItems = items.some(i => (i.category || 'Kitchen') !== 'PBQ');
         const kitchenDone = o.kitchenCompleted === true;
         return hasKitchenItems && !kitchenDone && (o.paid !== false); // only paid orders (or pending? we show all non-completed)
       });
+      const kTerm = getTabSearch('kitchen');
+      const filteredKitchen = allKitchenOrders.filter(o => orderMatchesSearch(o, kTerm) && orderMatchesTypeFilter(o, 'kitchen'));
       const bar = document.getElementById('kitchen-total-bar');
-      if (kitchenOrders.length === 0) {
-        c.innerHTML = '<div style="text-align:center;color:#8a6dcc;padding:20px;">No kitchen orders</div>';
+      updateTypeFilterCount('kitchen', filteredKitchen.length, allKitchenOrders.length);
+      if (filteredKitchen.length === 0) {
+        c.innerHTML = allKitchenOrders.length === 0
+          ? '<div style="text-align:center;color:#8a6dcc;padding:20px;">No kitchen orders</div>'
+          : noResultsMarkup('kitchen', 'No kitchen orders match your search');
         if (bar) bar.style.display = 'none';
         return;
       }
+      const kitchenOrders = filteredKitchen;
       const itemCounts = {};
       let totalItems = 0;
       kitchenOrders.forEach(o => {
@@ -1313,10 +1335,10 @@
         const displayName = o.customerName || (ot === 'tawag' ? 'Tawag Guest' : 'Walk-in #' + (o.number || ''));
         const kitchenItems = (o.items || []).filter(i => (i.category || 'Kitchen') !== 'PBQ');
         return `<div class="order-card" data-order-id="${o.id}">
-          <div class="order-header"><span class="order-number">${safeDisplay(displayName)} ${paidBadge}</span><span class="order-type ${ot}">${ot === 'walkin' ? 'WALK-IN' : 'TAWAG'}</span></div>
+          <div class="order-header"><span class="order-number">${highlightMatch(displayName, kTerm)} ${paidBadge}</span><span class="order-type ${ot}">${ot === 'walkin' ? 'WALK-IN' : 'TAWAG'}</span></div>
           <div class="order-time"><span class="clock-emoji">🕐</span> ${o.timestamp || ''}${o.customerName ? ' | 👤 ' + safeDisplay(o.customerName) : ''}${o.pickupTime ? ' | ⏰ ' + safeDisplay(o.pickupTime) : ''}</div>
           ${o.notes ? '<div class="order-notes">' + safeDisplay(o.notes) + '</div>' : ''}
-          <div class="order-items">${kitchenItems.map(i => '<div class="order-item"><span>' + safeDisplay(i.name) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
+          <div class="order-items">${kitchenItems.map(i => '<div class="order-item"><span>' + highlightMatch(i.name, kTerm) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
           <div class="order-actions"><button class="btn-status btn-complete" data-section="kitchen">✓ Complete</button></div>
         </div>`;
       }).join('');
@@ -1334,14 +1356,19 @@
     function updatePbqDisplay() {
       const c = document.getElementById('pbq-all-orders');
       // Show orders that have PBQ items and pbq is not completed
-      const pbqOrders = currentOrders.filter(o => {
+      const allPbqOrders = currentOrders.filter(o => {
         const items = o.items || [];
         const hasPbqItems = items.some(i => (i.category || 'Kitchen') === 'PBQ');
         const pbqDone = o.pbqCompleted === true;
         return hasPbqItems && !pbqDone && (o.paid !== false);
       });
+      const pTerm = getTabSearch('pbq');
+      const pbqOrders = allPbqOrders.filter(o => orderMatchesSearch(o, pTerm) && orderMatchesTypeFilter(o, 'pbq'));
+      updateTypeFilterCount('pbq', pbqOrders.length, allPbqOrders.length);
       if (pbqOrders.length === 0) {
-        c.innerHTML = '<div style="text-align:center;color:#8a6dcc;padding:20px;">No PBQ orders</div>';
+        c.innerHTML = allPbqOrders.length === 0
+          ? '<div style="text-align:center;color:#8a6dcc;padding:20px;">No PBQ orders</div>'
+          : noResultsMarkup('pbq', 'No PBQ orders match your search');
         const bar = document.getElementById('pbq-total-bar');
         if (bar) bar.style.display = 'none';
         return;
@@ -1372,10 +1399,10 @@
         const paidBadge = o.paid ? '<span class="payment-status paid">PAID</span>' : '<span class="payment-status unpaid">UNPAID</span>';
         const displayName = o.customerName || (ot === 'tawag' ? 'Tawag Guest' : 'Walk-in #' + (o.number || ''));
         return `<div class="order-card" data-order-id="${o.id}">
-          <div class="order-header"><span class="order-number">${safeDisplay(displayName)} ${paidBadge}</span><span class="order-type ${ot}">${ot === 'walkin' ? 'WALK-IN' : 'TAWAG'}</span></div>
+          <div class="order-header"><span class="order-number">${highlightMatch(displayName, pTerm)} ${paidBadge}</span><span class="order-type ${ot}">${ot === 'walkin' ? 'WALK-IN' : 'TAWAG'}</span></div>
           <div class="order-time"><span class="clock-emoji">🕐</span> ${o.timestamp || ''}${o.customerName ? ' | 👤 ' + safeDisplay(o.customerName) : ''}${o.pickupTime ? ' | ⏰ ' + safeDisplay(o.pickupTime) : ''}</div>
           ${o.notes ? '<div class="order-notes">' + safeDisplay(o.notes) + '</div>' : ''}
-          <div class="order-items">${(o.items || []).map(i => i.category !== 'PBQ' ? '' : '<div class="order-item"><span>' + safeDisplay(i.name) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
+          <div class="order-items">${(o.items || []).map(i => i.category !== 'PBQ' ? '' : '<div class="order-item"><span>' + highlightMatch(i.name, pTerm) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
           <div class="order-actions"><button class="btn-status btn-complete" data-section="pbq">✓ Complete</button></div>
         </div>`;
       }).join('');
@@ -1388,6 +1415,122 @@
           const section = this.dataset.section || 'pbq';
           completeOrderLocal(id, section);
         };
+      });
+    }
+    // ============================================================
+    // SEARCH & FILTER
+    // ============================================================
+    const tabSearchTerms = { pending: '', kitchen: '', pbq: '', admin: '' };
+    const tabTypeFilters = {
+      pending: { type: 'all' },
+      kitchen: { type: 'all' },
+      pbq: { type: 'all' }
+    };
+    function noResultsMarkup(tab, message) {
+      return `<div class="no-results">
+        <div>🔍 ${message}</div>
+        <button type="button" class="btn-no-results" onclick="clearTabSearch('${tab}')">Clear search</button>
+      </div>`;
+    }
+    function getTabSearch(tab) { return tabSearchTerms[tab] || ''; }
+    function setTabSearch(tab, value) {
+      tabSearchTerms[tab] = (value || '').toLowerCase();
+      const input = document.getElementById(`search-${tab}`);
+      const clear = document.getElementById(`clear-${tab}`);
+      if (input && input.value.toLowerCase() !== tabSearchTerms[tab]) input.value = value;
+      if (clear) clear.style.display = tabSearchTerms[tab] ? 'flex' : 'none';
+      renderSearchResults(tab);
+    }
+    function renderSearchResults(tab) {
+      if (tab === 'pending') updatePendingDisplay();
+      else if (tab === 'kitchen') updateKitchenDisplay();
+      else if (tab === 'pbq') updatePbqDisplay();
+      else if (tab === 'admin') renderAdminMenu();
+    }
+    function clearTabSearch(tab) {
+      setTabSearch(tab, '');
+      const input = document.getElementById(`search-${tab}`);
+      if (input) input.focus();
+    }
+    function orderMatchesSearch(o, term) {
+      if (!term) return true;
+      const tokens = term.split(/\s+/).filter(Boolean);
+      const haystack = [
+        o.customerName || '',
+        o.orderType === 'tawag' ? 'tawag' : 'walkin',
+        o.type === 'pending' ? 'pending' : '',
+        o.notes || '',
+        o.timestamp || '',
+        o.pickupTime || '',
+        (o.items || []).map(i => i.name || '').join(' ')
+      ].join(' ').toLowerCase();
+      return tokens.every(t => haystack.indexOf(t) !== -1);
+    }
+    function menuItemMatchesSearch(item, term) {
+      if (!term) return true;
+      const tokens = term.split(/\s+/).filter(Boolean);
+      const haystack = `${item.name || ''} ${item.category || ''} ${item.price || ''}`.toLowerCase();
+      return tokens.every(t => haystack.indexOf(t) !== -1);
+    }
+    function highlightMatch(text, term) {
+      const raw = String(text || '');
+      if (!term || !raw) return safeDisplay(raw);
+      const parts = raw.split(new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'ig'));
+      return parts.map((part, i) => i % 2 === 1 ? `<mark>${safeDisplay(part)}</mark>` : safeDisplay(part)).join('');
+    }
+    function renderSearchBar(tab, placeholder, chips) {
+      const term = getTabSearch(tab);
+      return `<div class="search-bar">
+        <div class="search-row">
+          <span class="search-icon">🔍</span>
+          <input type="search" id="search-${tab}" class="search-input" placeholder="${placeholder}" value="${term}" oninput="setTabSearch('${tab}', this.value)" />
+          <button type="button" class="search-clear" id="clear-${tab}" onclick="clearTabSearch('${tab}')" style="display:${term ? 'flex' : 'none'}">✕</button>
+        </div>
+        ${chips ? `<div class="search-chips">
+          <button type="button" class="search-chip" data-filter="tawag" onclick="toggleTypeFilter('${tab}', 'tawag', this)">📞 Tawag</button>
+          <button type="button" class="search-chip" data-filter="walkin" onclick="toggleTypeFilter('${tab}', 'walkin', this)">🏃 Walk-in</button>
+          <span class="search-chip" id="filter-count-${tab}" style="display:none;border:none;"></span>
+        </div>` : ''}
+      </div>`;
+    }
+    function toggleTypeFilter(tab, type, btn) {
+      const state = tabTypeFilters[tab];
+      const isActive = btn.classList.contains('active');
+      const slot = btn.closest('.search-bar');
+      slot.querySelectorAll('.search-chip').forEach(c => c.classList.remove('active'));
+      if (!isActive) {
+        state.type = type;
+        btn.classList.add('active');
+      } else {
+        state.type = 'all';
+      }
+      renderSearchResults(tab);
+    }
+    function orderMatchesTypeFilter(o, tab) {
+      const type = tabTypeFilters[tab].type;
+      if (type === 'all') return true;
+      return (o.orderType || o.type || 'walkin') === type;
+    }
+    function updateTypeFilterCount(tab, shown, total) {
+      const el = document.getElementById(`filter-count-${tab}`);
+      if (!el) return;
+      if (shown === total) {
+        el.style.display = 'none';
+      } else {
+        el.textContent = shown + ' of ' + total;
+        el.style.display = 'inline-block';
+      }
+    }
+    function initSearchBars() {
+      const configs = {
+        pending: { placeholder: 'Search name, order #, item...', chips: true },
+        kitchen: { placeholder: 'Search order or item...', chips: true },
+        pbq: { placeholder: 'Search order or item...', chips: true },
+        admin: { placeholder: 'Search items...', chips: false }
+      };
+      Object.keys(configs).forEach(tab => {
+        const el = document.querySelector(`[data-search-slot="${tab}"]`);
+        if (el) el.innerHTML = renderSearchBar(tab, configs[tab].placeholder, configs[tab].chips);
       });
     }
     // ============================================================
@@ -1712,6 +1855,7 @@
         document.getElementById('sound-switch').classList.add('active');
       }
       // Initialize app
+      initSearchBars();
       loadMenu();
       listenForOrders();
       updateOrderDisplay();

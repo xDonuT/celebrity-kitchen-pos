@@ -77,6 +77,12 @@
       div.textContent = text;
       return div.innerHTML;
     }
+    function escapeHtmlAttr(text) {
+      return safeDisplay(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function jsStringArg(text) {
+      return escapeHtmlAttr(String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+    }
     function formatNumber(n) {
       if (n === undefined || n === null) return '0';
       return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -432,7 +438,7 @@
       list.innerHTML = visibleAdmin.map(item => `
         <div class="admin-item" data-id="${item.id}">
           <span class="admin-icon">${item.icon || '🍽️'}</span>
-          <input type="text" class="admin-name-input" value="${safeDisplay(item.name)}" placeholder="Name">
+          <input type="text" class="admin-name-input" value="${escapeHtmlAttr(item.name)}" placeholder="Name">
           <input type="number" class="admin-price-input" value="${item.price}" placeholder="Price" style="max-width:80px;">
           <span class="item-category">${item.category || 'Kitchen'}</span>
           <button class="btn-save" onclick="saveMenuItem('${item.id}')">💾 Save</button>
@@ -618,9 +624,9 @@
             <div class="cart-item-info">
               <span class="cart-item-name">${safeDisplay(i.name)}</span>
               <div class="quantity-controls">
-                <button class="btn-quantity btn-minus" onclick="updateQuantity('${i.name.replace(/'/g, "\\'")}',-1)">−</button>
-                <span class="quantity-display">${i.quantity}</span>
-                <button class="btn-quantity" onclick="updateQuantity('${i.name.replace(/'/g, "\\'")}',1)">+</button>
+                    <button class="btn-quantity btn-minus" onclick="updateQuantity('${jsStringArg(i.name)}',-1)">−</button>
+                    <span class="quantity-display">${i.quantity}</span>
+                    <button class="btn-quantity" onclick="updateQuantity('${jsStringArg(i.name)}',1)">+</button>
                 ${isPBQ ? `<button class="trash-btn" onclick="clearPBQ()">🗑️</button>` : ''}
               </div>
             </div>
@@ -1486,7 +1492,7 @@
       return `<div class="search-bar">
         <div class="search-row">
           <span class="search-icon">🔍</span>
-          <input type="search" id="search-${tab}" class="search-input" placeholder="${placeholder}" value="${term}" oninput="setTabSearch('${tab}', this.value)" />
+          <input type="search" id="search-${tab}" class="search-input" placeholder="${placeholder}" value="${escapeHtmlAttr(term)}" oninput="setTabSearch('${tab}', this.value)" />
           <button type="button" class="search-clear" id="clear-${tab}" onclick="clearTabSearch('${tab}')" style="display:${term ? 'flex' : 'none'}">✕</button>
         </div>
         ${chips ? `<div class="search-chips">
@@ -1620,6 +1626,21 @@
         hideLoading();
       });
     }
+    function applySummaryFilters(rows) {
+      const dateFilter = document.getElementById('summary-date-filter').value;
+      const channel = document.getElementById('summary-filter').value;
+      let out = dateFilter === 'today' ? rows.filter(t => t.date === getToday()) : rows;
+      if (channel === 'walkin') {
+        out = out.filter(t => (t.orderType || t.type) === 'walkin' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
+      } else if (channel === 'tawag') {
+        out = out.filter(t => (t.orderType || t.type) === 'tawag' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
+      } else if (channel === 'gcash') {
+        out = out.filter(t => t.paymentMethod === 'GCash');
+      } else if (channel === 'split') {
+        out = out.filter(t => t.paymentMethod === 'Split');
+      }
+      return out;
+    }
     function showSummary() {
       getHistoryRef().once('value').then((snapshot) => {
         const data = snapshot.val();
@@ -1629,17 +1650,7 @@
           return;
         }
         const history = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        const filter = document.getElementById('summary-filter').value;
-        let filtered = history;
-        if (filter === 'walkin') {
-          filtered = history.filter(t => (t.orderType || t.type) === 'walkin' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
-        } else if (filter === 'tawag') {
-          filtered = history.filter(t => (t.orderType || t.type) === 'tawag' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
-        } else if (filter === 'gcash') {
-          filtered = history.filter(t => t.paymentMethod === 'GCash');
-        } else if (filter === 'split') {
-          filtered = history.filter(t => t.paymentMethod === 'Split');
-        }
+        const filtered = applySummaryFilters(history);
         let cashTotal = 0, gcashTotal = 0;
         filtered.forEach(t => {
           if (t.paymentMethod === 'Split') {
@@ -1705,17 +1716,7 @@
           return;
         }
         const history = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        const filter = document.getElementById('summary-filter').value;
-        let filtered = history;
-        if (filter === 'walkin') {
-          filtered = history.filter(t => (t.orderType || t.type) === 'walkin' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
-        } else if (filter === 'tawag') {
-          filtered = history.filter(t => (t.orderType || t.type) === 'tawag' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
-        } else if (filter === 'gcash') {
-          filtered = history.filter(t => t.paymentMethod === 'GCash');
-        } else if (filter === 'split') {
-          filtered = history.filter(t => t.paymentMethod === 'Split');
-        }
+        const filtered = applySummaryFilters(history);
         let csv = 'Time,Type,Method,Cash,GCash,Order#,Customer,Total,Change,Items\n';
         filtered.forEach(t => {
           const items = (t.items || []).map(i => i.name + '×' + i.quantity).join('; ');
@@ -1726,7 +1727,8 @@
         const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'sales_export_' + getToday() + '.csv';
+        const scope = document.getElementById('summary-date-filter').value;
+        a.download = 'sales_export_' + (scope === 'today' ? getToday() : 'all_time') + '.csv';
         a.click();
         play('btn');
         showToast('📥 CSV exported successfully!', null, 'success');

@@ -1,0 +1,10 @@
+{
+  "name": "celebrity-kitchen-pos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Point-of-sale for Celebrity Kitchen. Static app; open onlinePOS.html to run.",
+  "scripts": {
+    "test": "node tests/pos.test.js",
+    "check": "node --check app.js"
+  }
+}

@@ -548,6 +548,14 @@
 
       </select>
 
+      <select id="summary-date-filter" onchange="showSummary()" style="width:100%;padding:8px;border-radius:8px;margin-bottom:10px;">
+
+        <option value="today">📅 Today</option>
+
+        <option value="all">🗓️ All Time</option>
+
+      </select>
+
       <button onclick="exportSummary()" style="width:100%;padding:8px;background:#4caf50;color:white;border:none;border-radius:8px;margin-bottom:10px;">📥 Export CSV</button>
 
       <div id="summary-grid"></div>

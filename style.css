@@ -25,6 +25,30 @@
       --gap: 8px;
       --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
+    /* ===== KEYBOARD FOCUS =====
+       The tappable elements are real <button>s now, so Tab can reach them.
+       Show a ring so keyboard users can see where they are. Only on
+       :focus-visible, so mouse taps don't leave outlines behind. */
+    :focus-visible {
+      outline: 3px solid var(--info);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    .dark-mode :focus-visible {
+      outline-color: var(--primary-light);
+    }
+    /* Visually hidden, still announced by screen readers. */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     /* ===== RESET ===== */
     * {
       box-sizing: border-box;
@@ -364,6 +388,7 @@
       border-radius: var(--radius);
       cursor: pointer;
       font-weight: 600;
+      font-family: inherit;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -871,6 +896,7 @@
     .btn-complete { background: var(--primary); }
     /* ===== ADMIN CLOSE ===== */
     .admin-close {
+      font-family: inherit;
       position: absolute;
       top: 8px;
       right: 16px;
@@ -880,6 +906,10 @@
       z-index: 10;
       font-weight: 300;
       transition: color 0.3s ease;
+      background: none;
+      border: none;
+      padding: 4px 8px;
+      line-height: 1;
     }
     .admin-close:hover { color: var(--danger); }
     /* ===== MODALS ===== */
@@ -941,6 +971,7 @@
       padding-top: 48px;
     }
     .close-modal {
+      font-family: inherit;
       position: absolute;
       top: 8px;
       right: 12px;
@@ -949,6 +980,10 @@
       color: var(--primary);
       z-index: 10;
       transition: color 0.3s ease;
+      background: none;
+      border: none;
+      padding: 4px 8px;
+      line-height: 1;
     }
     .close-modal:hover { color: var(--danger); }
     /* ===== TOAST ===== */
@@ -1026,6 +1061,8 @@
       font-size: 0.8rem;
       color: #00695c;
       transition: transform 0.15s ease, background 0.3s ease;
+      border: none;
+      font-family: inherit;
     }
     .quick-amount:active { transform: scale(0.95); }
     .dark-mode .quick-amount {
@@ -1186,6 +1223,11 @@
       font-size: 0.8rem;
       color: #333;
       transition: background 0.3s ease;
+      display: block;
+      width: 100%;
+      border: none;
+      font-family: inherit;
+      text-align: left;
     }
     .suggestion-item:active { background: rgba(138, 109, 204, 0.2); }
     .dark-mode .suggestion-item {
@@ -1211,6 +1253,13 @@
       gap: 10px;
       cursor: pointer;
       transition: background 0.3s ease;
+      /* These are real <button> elements now so keyboard and screen readers
+         can reach them. Strip the UA button chrome so they keep their look. */
+      width: 100%;
+      border: none;
+      font: inherit;
+      color: inherit;
+      text-align: left;
     }
     .more-option:active { background: rgba(138, 109, 204, 0.15); }
     .dark-mode .more-option {

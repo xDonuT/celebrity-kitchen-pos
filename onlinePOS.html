@@ -6,7 +6,7 @@
 
   <meta charset="UTF-8" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <title>Celebrity Kitchen POS (Firebase)</title>
 
@@ -68,9 +68,11 @@
 
           <div class="order-info-row">
 
+            <label class="sr-only" for="order-number">Order Number</label>
             <input type="text" class="order-input" id="order-number" placeholder="Order Number" />
 
-            <select class="order-type-select" id="order-type">
+            <label class="sr-only" for="order-type">Order Type</label>
+              <select class="order-type-select" id="order-type">
 
               <option value="walkin">Walk-in</option>
 
@@ -78,15 +80,18 @@
 
             </select>
 
-            <input type="text" class="order-input" id="customer-name" placeholder="Customer Name" style="display:none;" />
+            <label class="sr-only" for="customer-name">Customer Name</label>
+              <input type="text" class="order-input" id="customer-name" placeholder="Customer Name" style="display:none;" />
 
-            <input type="time" class="time-input" id="pickup-time" style="display:none;" />
+            <label class="sr-only" for="pickup-time">Pickup Time</label>
+              <input type="time" class="time-input" id="pickup-time" style="display:none;" />
 
           </div>
 
           <div class="order-info-row">
 
-            <textarea class="notes-input" id="order-notes" placeholder="Special instructions"></textarea>
+            <label class="sr-only" for="order-notes">Special Instructions</label>
+              <textarea class="notes-input" id="order-notes" placeholder="Special instructions"></textarea>
 
           </div>
 
@@ -116,11 +121,11 @@
 
                 <span class="total-amount" id="total-display">Total: ₱0</span>
 
-                <button class="btn-proceed" id="btn-cash-payment" onclick="openPayment('Cash')">💵 Cash</button>
+                <button type="button" class="btn-proceed" id="btn-cash-payment" onclick="openPayment('Cash')">💵 Cash</button>
 
-                <button class="btn-proceed btn-gcash-pay" id="btn-gcash-payment" onclick="openPayment('GCash')">📱 GCash</button>
+                <button type="button" class="btn-proceed btn-gcash-pay" id="btn-gcash-payment" onclick="openPayment('GCash')">📱 GCash</button>
 
-                <button class="btn-proceed btn-split-pay" id="btn-split-payment" onclick="openSplitPayment()" style="background:#6d5a8a;">🔀 Split</button>
+                <button type="button" class="btn-proceed btn-split-pay" id="btn-split-payment" onclick="openSplitPayment()" style="background:#6d5a8a;">🔀 Split</button>
 
               </div>
 
@@ -200,7 +205,7 @@
 
         <div class="order-queue">
 
-          <span class="admin-close" onclick="switchTab('more')">×</span>
+          <button type="button" class="admin-close" onclick="switchTab('more')" aria-label="Close">&times;</button>
 
           <div class="section-title">⚙️ Admin Settings</div>
 
@@ -212,10 +217,13 @@
 
             <div class="admin-add-item">
 
+              <label class="sr-only" for="admin-new-name">New Item Name</label>
               <input type="text" id="admin-new-name" placeholder="Item Name" />
 
+              <label class="sr-only" for="admin-new-price">Price</label>
               <input type="number" id="admin-new-price" placeholder="Price" />
 
+              <label class="sr-only" for="admin-new-category">Category</label>
               <select class="admin-category-select" id="admin-new-category">
 
                 <option value="Kitchen">Kitchen</option>
@@ -224,7 +232,7 @@
 
               </select>
 
-              <button class="btn-add-item" onclick="addMenuItem()">➕ Add Item</button>
+              <button type="button" class="btn-add-item" onclick="addMenuItem()">➕ Add Item</button>
 
             </div>
 
@@ -244,81 +252,81 @@
 
         <div class="more-options">
 
-          <div class="more-option" onclick="toggleTheme()">
+          <button type="button" class="more-option" role="switch" aria-checked="false" aria-label="Dark Mode" onclick="toggleTheme()">
 
             <div class="more-icon">🌙</div>
 
             <div class="more-label">Dark Mode</div>
 
-            <div class="toggle-switch" id="theme-switch">
+            <span class="toggle-switch" id="theme-switch" aria-hidden="true">
 
-              <div class="toggle-slider"></div>
+              <span class="toggle-slider"></span>
 
             </div>
 
-          </div>
+          </button>
 
-          <div class="more-option" onclick="toggleSound()">
+          <button type="button" class="more-option" role="switch" aria-checked="true" aria-label="Sound" onclick="toggleSound()">
 
             <div class="more-icon">🔊</div>
 
             <div class="more-label">Sound</div>
 
-            <div class="toggle-switch active" id="sound-switch">
+            <span class="toggle-switch active" id="sound-switch" aria-hidden="true">
 
-              <div class="toggle-slider"></div>
+              <span class="toggle-slider"></span>
 
             </div>
 
-          </div>
+          </button>
 
-          <div class="more-option" onclick="showHistory()">
+          <button type="button" class="more-option" onclick="showHistory()">
 
             <div class="more-icon">📋</div>
 
             <div class="more-label">Transaction History</div>
 
-          </div>
+          </button>
 
-          <div class="more-option" onclick="clearHistory()">
+          <button type="button" class="more-option" onclick="clearHistory()">
 
             <div class="more-icon">🗑️</div>
 
             <div class="more-label">Clear All Data</div>
 
-          </div>
+          </button>
 
-          <div class="more-option" onclick="showSummary()">
+          <button type="button" class="more-option" onclick="showSummary()">
 
             <div class="more-icon">📊</div>
 
             <div class="more-label">Sales Summary</div>
 
-          </div>
+          </button>
 
-          <div class="more-option" onclick="endOfDay()">
+          <button type="button" class="more-option" onclick="endOfDay()">
 
             <div class="more-icon">📥</div>
 
             <div class="more-label">End of Day (Export &amp; Clear)</div>
 
-          </div>
+          </button>
 
-          <div class="more-option" onclick="switchTab('admin')">
+          <button type="button" class="more-option" onclick="switchTab('admin')">
 
             <div class="more-icon">⚙️</div>
 
             <div class="more-label">Admin Settings</div>
 
-          </div>
+          </button>
 
-          <div class="more-option" onclick="showAppInfo()">
+          <button type="button" class="more-option" onclick="showAppInfo()">
 
             <div class="more-icon">ℹ️</div>
 
             <div class="more-label">About</div>
 
-          </div>
+          </button>
 
         </div>
 
@@ -332,31 +340,31 @@
 
     <div class="tab-navigation">
 
-      <button class="tab-btn active" data-tab="cashier" onclick="switchTab('cashier', this)">
+      <button type="button" class="tab-btn active" data-tab="cashier" onclick="switchTab('cashier', this)">
 
         <span class="tab-icon">🛒</span>Cashier
 
       </button>
 
-      <button class="tab-btn" data-tab="pending" onclick="switchTab('pending', this)">
+      <button type="button" class="tab-btn" data-tab="pending" onclick="switchTab('pending', this)">
 
         <span class="tab-icon">📞</span>Pending
 
       </button>
 
-      <button class="tab-btn" data-tab="kitchen" onclick="switchTab('kitchen', this)">
+      <button type="button" class="tab-btn" data-tab="kitchen" onclick="switchTab('kitchen', this)">
 
         <span class="tab-icon">🍳</span>Kitchen
 
       </button>
 
-      <button class="tab-btn" data-tab="pbq" onclick="switchTab('pbq', this)">
+      <button type="button" class="tab-btn" data-tab="pbq" onclick="switchTab('pbq', this)">
 
         <span class="tab-icon">🍖</span>PBQ
 
       </button>
 
-      <button class="tab-btn" data-tab="more" onclick="switchTab('more', this)">
+      <button type="button" class="tab-btn" data-tab="more" onclick="switchTab('more', this)">
 
         <span class="tab-icon">⋯</span>More
 
@@ -376,7 +384,7 @@
 
     <div class="modal-content">
 
-      <span class="close-modal" onclick="closePayment()">×</span>
+      <button type="button" class="close-modal" onclick="closePayment()" aria-label="Close payment">&times;</button>
 
       <div class="section-title" id="payment-title-label">💵 Payment</div>
 
@@ -410,13 +418,13 @@
 
       <div class="eco-bag-controls">
 
-        <button class="btn-exact-compact" onclick="setExactAmount()">Exact</button>
+        <button type="button" class="btn-exact-compact" onclick="setExactAmount()">Exact</button>
 
-        <button class="btn-eco-bag" id="eco-bag-btn" onclick="addEcoBag()">Bag ₱5</button>
+        <button type="button" class="btn-eco-bag" id="eco-bag-btn" onclick="addEcoBag()">Bag ₱5</button>
 
-        <button class="btn-eco-small btn-eco-minus" onclick="removeEcoBag()">−</button>
+        <button type="button" class="btn-eco-small btn-eco-minus" onclick="removeEcoBag()" aria-label="Remove one eco bag">−</button>
 
-        <button class="btn-eco-small" onclick="addEcoBag()">+</button>
+        <button type="button" class="btn-eco-small" onclick="addEcoBag()" aria-label="Add one eco bag">+</button>
 
       </div>
 
@@ -424,9 +432,9 @@
 
         <div class="split-toggle">
 
-          <button class="split-toggle-btn active" id="split-toggle-gcash" onclick="setSplitField('gcash')">📱 GCash</button>
+          <button type="button" class="split-toggle-btn active" id="split-toggle-gcash" onclick="setSplitField('gcash')">📱 GCash</button>
 
-          <button class="split-toggle-btn" id="split-toggle-cash" onclick="setSplitField('cash')">💵 Cash</button>
+          <button type="button" class="split-toggle-btn" id="split-toggle-cash" onclick="setSplitField('cash')">💵 Cash</button>
 
         </div>
 
@@ -452,17 +460,17 @@
 
         <div class="quick-amounts-compact">
 
-          <div class="quick-amount" onclick="addQuickAmount(20)">₱20</div>
+          <button type="button" class="quick-amount" onclick="addQuickAmount(20)" aria-label="Add 20 pesos">₱20</button>
 
-          <div class="quick-amount" onclick="addQuickAmount(50)">₱50</div>
+          <button type="button" class="quick-amount" onclick="addQuickAmount(50)" aria-label="Add 50 pesos">₱50</button>
 
-          <div class="quick-amount" onclick="addQuickAmount(100)">₱100</div>
+          <button type="button" class="quick-amount" onclick="addQuickAmount(100)" aria-label="Add 100 pesos">₱100</button>
 
-          <div class="quick-amount" onclick="addQuickAmount(200)">₱200</div>
+          <button type="button" class="quick-amount" onclick="addQuickAmount(200)" aria-label="Add 200 pesos">₱200</button>
 
-          <div class="quick-amount" onclick="addQuickAmount(500)">₱500</div>
+          <button type="button" class="quick-amount" onclick="addQuickAmount(500)" aria-label="Add 500 pesos">₱500</button>
 
-          <div class="quick-amount" onclick="addQuickAmount(1000)">₱1000</div>
+          <button type="button" class="quick-amount" onclick="addQuickAmount(1000)" aria-label="Add 1000 pesos">₱1000</button>
 
         </div>
 
@@ -472,9 +480,9 @@
 
       <div class="payment-actions">
 
-        <button class="btn-pending-action" onclick="saveAsPending()">Save Pending</button>
+        <button type="button" class="btn-pending-action" onclick="saveAsPending()">Save Pending</button>
 
-        <button class="btn-proceed" id="main-submit-pay-btn" onclick="handlePaymentSubmission()">Calculate</button>
+        <button type="button" class="btn-proceed" id="main-submit-pay-btn" onclick="handlePaymentSubmission()">Calculate</button>
 
       </div>
 
@@ -490,7 +498,7 @@
 
     <div class="modal-content">
 
-      <span class="close-modal" onclick="closeResult()">×</span>
+      <button type="button" class="close-modal" onclick="closeResult()" aria-label="Close result">&times;</button>
 
       <div class="section-title">💰 Change</div>
 
@@ -498,7 +506,7 @@
 
       <div id="suggestion-list"></div>
 
-      <button class="btn-proceed" id="btn-complete-transaction" onclick="completeTransaction()" style="width:100%;margin-top:12px;">✅ Done</button>
+      <button type="button" class="btn-proceed" id="btn-complete-transaction" onclick="completeTransaction()" style="width:100%;margin-top:12px;">✅ Done</button>
 
     </div>
 
@@ -512,7 +520,7 @@
 
     <div class="modal-content">
 
-      <span class="close-modal" onclick="closeHistory()">×</span>
+      <button type="button" class="close-modal" onclick="closeHistory()" aria-label="Close history">&times;</button>
 
       <div class="section-title">📋 History</div>
 
@@ -530,11 +538,12 @@
 
     <div class="modal-content">
 
-      <span class="close-modal" onclick="closeSummary()">×</span>
+      <button type="button" class="close-modal" onclick="closeSummary()" aria-label="Close summary">&times;</button>
 
       <div class="section-title">📊 Summary</div>
 
-      <select id="summary-filter" onchange="showSummary()" style="width:100%;padding:8px;border-radius:8px;margin-bottom:10px;">
+      <label class="sr-only" for="summary-filter">Summary Type Filter</label>
+        <select id="summary-filter" onchange="showSummary()" style="width:100%;padding:8px;border-radius:8px;margin-bottom:10px;">
 
         <option value="all">All Channels</option>
 
@@ -548,7 +557,8 @@
 
       </select>
 
-      <select id="summary-date-filter" onchange="showSummary()" style="width:100%;padding:8px;border-radius:8px;margin-bottom:10px;">
+      <label class="sr-only" for="summary-date-filter">Summary Date Filter</label>
+        <select id="summary-date-filter" onchange="showSummary()" style="width:100%;padding:8px;border-radius:8px;margin-bottom:10px;">
 
         <option value="today">📅 Today</option>
 
@@ -556,7 +566,7 @@
 
       </select>
 
-      <button onclick="exportSummary()" style="width:100%;padding:8px;background:#4caf50;color:white;border:none;border-radius:8px;margin-bottom:10px;">📥 Export CSV</button>
+      <button type="button" onclick="exportSummary()" style="width:100%;padding:8px;background:#4caf50;color:white;border:none;border-radius:8px;margin-bottom:10px;">📥 Export CSV</button>
 
       <div id="summary-grid"></div>
 
@@ -572,7 +582,7 @@
 
     <div class="modal-content">
 
-      <span class="close-modal" onclick="closeAppInfo()">×</span>
+      <button type="button" class="close-modal" onclick="closeAppInfo()" aria-label="Close about">&times;</button>
 
       <div class="section-title">📖 About</div>
 

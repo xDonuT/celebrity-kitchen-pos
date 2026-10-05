@@ -339,13 +339,13 @@
         box.innerHTML = `
           <div class="box-title">🍢 PBQ Quantity</div>
           <div class="box-row">
-            <button class="btn-adjust btn-minus" onclick="adjustPbq(-1)">−</button>
+            <button type="button" class="btn-adjust btn-minus" onclick="adjustPbq(-1)" aria-label="Decrease PBQ quantity">−</button>
             <input type="number" id="pbqQty" value="1" min="1" max="999" />
-            <button class="btn-adjust btn-plus" onclick="adjustPbq(1)">+</button>
+            <button type="button" class="btn-adjust btn-plus" onclick="adjustPbq(1)" aria-label="Increase PBQ quantity">+</button>
           </div>
           <div class="box-actions">
-            <button class="btn-cancel" onclick="closePbqBox()">Cancel</button>
-            <button class="btn-add" onclick="addPbqFromBox()">✅ Add</button>
+            <button type="button" class="btn-cancel" onclick="closePbqBox()">Cancel</button>
+            <button type="button" class="btn-add" onclick="addPbqFromBox()">✅ Add</button>
           </div>
         `;
         overlay.appendChild(box);
@@ -373,11 +373,11 @@
             </div>
           </div>`;
         }
-        return `<div class="btn-food ${categoryClass} ${nameClass}" onclick="addToCart('${item.id}')">
-          <span class="food-icon">${item.icon || '🍽️'}</span>
+        return `<button type="button" class="btn-food ${categoryClass} ${nameClass}" onclick="addToCart('${item.id}')" aria-label="Add ${escapeHtmlAttr(item.name)}, ${item.price} pesos">
+          <span class="food-icon" aria-hidden="true">${item.icon || '🍽️'}</span>
           <span class="food-name">${safeDisplay(item.name)}</span>
           <span class="food-price">₱${item.price}</span>
-        </div>`;
+        </button>`;
       }).join('');
       // Re-bind PBQ events
       setTimeout(() => {
@@ -426,8 +426,8 @@
           <input type="text" class="admin-name-input" value="${escapeHtmlAttr(item.name)}" placeholder="Name">
           <input type="number" class="admin-price-input" value="${item.price}" placeholder="Price" style="max-width:80px;">
           <span class="item-category">${item.category || 'Kitchen'}</span>
-          <button class="btn-save" onclick="saveMenuItem('${item.id}')">💾 Save</button>
-          <button class="btn-delete" onclick="deleteMenuItem('${item.id}')">🗑️</button>
+          <button type="button" class="btn-save" onclick="saveMenuItem('${item.id}')">💾 Save</button>
+          <button type="button" class="btn-delete" onclick="deleteMenuItem('${item.id}')">🗑️</button>
         </div>
       `).join('');
     }
@@ -609,10 +609,10 @@
             <div class="cart-item-info">
               <span class="cart-item-name">${safeDisplay(i.name)}</span>
               <div class="quantity-controls">
-                    <button class="btn-quantity btn-minus" onclick="updateQuantity('${jsStringArg(i.name)}',-1)">−</button>
+                    <button type="button" class="btn-quantity btn-minus" onclick="updateQuantity('${jsStringArg(i.name)}',-1)" aria-label="Decrease quantity of ${escapeHtmlAttr(i.name)}">−</button>
                     <span class="quantity-display">${i.quantity}</span>
-                    <button class="btn-quantity" onclick="updateQuantity('${jsStringArg(i.name)}',1)">+</button>
-                ${isPBQ ? `<button class="trash-btn" onclick="clearPBQ()">🗑️</button>` : ''}
+                    <button type="button" class="btn-quantity" onclick="updateQuantity('${jsStringArg(i.name)}',1)" aria-label="Increase quantity of ${escapeHtmlAttr(i.name)}">+</button>
+                ${isPBQ ? `<button type="button" class="trash-btn" onclick="clearPBQ()" aria-label="Remove PBQ from order">🗑️</button>` : ''}
               </div>
             </div>
             <span class="cart-item-price">₱${formatNumber(i.total)}</span>
@@ -623,9 +623,9 @@
             <div class="cart-item-info">
               <span class="cart-item-name">Eco Bag</span>
               <div class="quantity-controls">
-                <button class="btn-quantity btn-minus" onclick="removeEcoBag()">−</button>
+                <button type="button" class="btn-quantity btn-minus" onclick="removeEcoBag()" aria-label="Decrease eco bag quantity">−</button>
                 <span class="quantity-display">${ecoBagQuantity}</span>
-                <button class="btn-quantity" onclick="addEcoBag()">+</button>
+                <button type="button" class="btn-quantity" onclick="addEcoBag()" aria-label="Increase eco bag quantity">+</button>
               </div>
             </div>
             <span class="cart-item-price">₱${formatNumber(ecoBagQuantity * ECO_BAG_PRICE)}</span>
@@ -897,9 +897,9 @@
       document.getElementById('result-change').textContent = '₱' + formatNumber(change);
       const list = document.getElementById('suggestion-list');
       list.innerHTML = POSCore.changeSuggestions(activePaymentMethod, paidAmount, required)
-        .map((s, i) => `<div class="suggestion-item${i === 0 ? ' best' : ''}" onclick="useSuggestion(${s.paid})">
+        .map((s, i) => `<button type="button" class="suggestion-item${i === 0 ? ' best' : ''}" onclick="useSuggestion(${s.paid})">
             Pay ₱${formatNumber(s.paid)} → Change ₱${formatNumber(s.change)}
-          </div>`)
+          </button>`)
         .join('');
       document.getElementById('payment-modal').classList.remove('show');
       document.getElementById('result-modal').classList.add('show');
@@ -1235,10 +1235,10 @@
           <div class="order-items">${(o.items || []).map(i => '<div class="order-item"><span>' + highlightMatch(i.name, term) + '</span><span>×' + i.quantity + '</span></div>').join('')}${o.ecoBags > 0 ? '<div class="order-item"><span>Eco Bag</span><span>×' + o.ecoBags + '</span></div>' : ''}</div>
           <div class="order-total">Total: ₱${formatNumber(o.total || 0)}</div>
           <div class="order-actions">
-            <button class="btn-status btn-collect-payment" data-method="Cash">Collect Cash</button>
-            <button class="btn-status btn-collect-payment btn-gcash-pay" data-method="GCash" style="background:#007cfe;">Collect GCash</button>
-            <button class="btn-status btn-collect-payment" data-method="Split" style="background:#6d5a8a;">Collect Split</button>
-            <button class="btn-status btn-cancel">Cancel</button>
+            <button type="button" class="btn-status btn-collect-payment" data-method="Cash">Collect Cash</button>
+            <button type="button" class="btn-status btn-collect-payment btn-gcash-pay" data-method="GCash" style="background:#007cfe;">Collect GCash</button>
+            <button type="button" class="btn-status btn-collect-payment" data-method="Split" style="background:#6d5a8a;">Collect Split</button>
+            <button type="button" class="btn-status btn-cancel">Cancel</button>
           </div>
         </div>`;
       }).join('');
@@ -1303,7 +1303,7 @@
           <div class="order-time"><span class="clock-emoji">🕐</span> ${o.timestamp || ''}${o.customerName ? ' | 👤 ' + safeDisplay(o.customerName) : ''}${o.pickupTime ? ' | ⏰ ' + safeDisplay(o.pickupTime) : ''}</div>
           ${o.notes ? '<div class="order-notes">' + safeDisplay(o.notes) + '</div>' : ''}
           <div class="order-items">${kitchenItems.map(i => '<div class="order-item"><span>' + highlightMatch(i.name, kTerm) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
-          <div class="order-actions"><button class="btn-status btn-complete" data-section="kitchen">✓ Complete</button></div>
+          <div class="order-actions"><button type="button" class="btn-status btn-complete" data-section="kitchen">✓ Complete</button></div>
         </div>`;
       }).join('');
       c.querySelectorAll('.btn-complete').forEach(btn => {
@@ -1362,7 +1362,7 @@
           <div class="order-time"><span class="clock-emoji">🕐</span> ${o.timestamp || ''}${o.customerName ? ' | 👤 ' + safeDisplay(o.customerName) : ''}${o.pickupTime ? ' | ⏰ ' + safeDisplay(o.pickupTime) : ''}</div>
           ${o.notes ? '<div class="order-notes">' + safeDisplay(o.notes) + '</div>' : ''}
           <div class="order-items">${(o.items || []).map(i => i.category !== 'PBQ' ? '' : '<div class="order-item"><span>' + highlightMatch(i.name, pTerm) + '</span><span>×' + i.quantity + '</span></div>').join('')}</div>
-          <div class="order-actions"><button class="btn-status btn-complete" data-section="pbq">✓ Complete</button></div>
+          <div class="order-actions"><button type="button" class="btn-status btn-complete" data-section="pbq">✓ Complete</button></div>
         </div>`;
       }).join('');
       c.querySelectorAll('.btn-complete').forEach(btn => {
@@ -1426,7 +1426,7 @@
         <div class="search-row">
           <span class="search-icon">🔍</span>
           <input type="search" id="search-${tab}" class="search-input" placeholder="${placeholder}" value="${escapeHtmlAttr(term)}" oninput="setTabSearch('${tab}', this.value)" />
-          <button type="button" class="search-clear" id="clear-${tab}" onclick="clearTabSearch('${tab}')" style="display:${term ? 'flex' : 'none'}">✕</button>
+          <button type="button" class="search-clear" id="clear-${tab}" onclick="clearTabSearch('${tab}')" aria-label="Clear search" style="display:${term ? 'flex' : 'none'}">✕</button>
         </div>
         ${chips ? `<div class="search-chips">
           <button type="button" class="search-chip" data-filter="tawag" onclick="toggleTypeFilter('${tab}', 'tawag', this)">📞 Tawag</button>
@@ -1662,15 +1662,19 @@
     function toggleTheme() {
       darkMode = !darkMode;
       document.body.classList.toggle('dark-mode', darkMode);
-      document.getElementById('theme-switch').classList.toggle('active', darkMode);
+      const sw = document.getElementById('theme-switch');
+      sw.classList.toggle('active', darkMode);
+      sw.closest('.more-option').setAttribute('aria-checked', String(darkMode));
       play('btn');
       localStorage.setItem('pos_theme', darkMode ? 'dark' : 'light');
     }
-    function toggleSound() {
+function toggleSound() {
       soundOn = !soundOn;
-      document.getElementById('sound-switch').classList.toggle('active', soundOn);
-      localStorage.setItem('pos_sound', soundOn ? 'on' : 'off');
+      const sw = document.getElementById('sound-switch');
+      sw.classList.toggle('active', soundOn);
+      sw.closest('.more-option').setAttribute('aria-checked', String(soundOn));
       play('btn');
+      localStorage.setItem('pos_sound', soundOn ? 'on' : 'off');
     }
     function showAppInfo() {
       document.getElementById('app-info-modal').classList.add('show');

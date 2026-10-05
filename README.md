@@ -6,7 +6,14 @@ Point-of-sale system for **Celebrity Kitchen**, built as a single-page web app p
 
 - `onlinePOS.html` — app structure/markup
 - `style.css` — all styling
-- `app.js` — all application logic
+- `app.js` — Firebase wiring, DOM, and event handlers
+- `js/pos-core.js` — shared business logic (totals, change, filters, summary, CSV)
+
+`js/pos-core.js` holds the calculations and rules that must behave identically
+everywhere, so they can be unit-tested under Node. It has no Firebase or DOM
+dependencies and is loaded as a plain script before `app.js`, which means the app
+keeps working when opened directly from a file or USB stick. `app.js` calls into
+it rather than keeping a second copy of the math.
 
 ## Features
 
@@ -25,7 +32,21 @@ Point-of-sale system for **Celebrity Kitchen**, built as a single-page web app p
 
 1. Open `onlinePOS.html` in a browser.
 2. The app connects to the Firebase project configured in `app.js`.
-3. All three files must stay together in the same folder.
+3. Copy these five files, keeping the `js/` subfolder in place:
+   `index.html`, `onlinePOS.html`, `style.css`, `app.js`, `js/pos-core.js`.
+
+## Tests
+
+Requires Node 18+ (dev only — the app itself needs no install).
+
+```
+npm test    # unit + workflow + wiring tests
+npm run check   # syntax check app.js and js/pos-core.js
+```
+
+`tests/wiring.test.js` fails if logic that lives in `js/pos-core.js` is copied
+back into `app.js`, so the unit tests cannot silently drift away from the code
+that actually runs.
 
 ## Note
 

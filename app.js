@@ -27,14 +27,13 @@
     // ============================================================
     // GLOBAL STATE
     // ============================================================
-    const importantSuggestions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
     let soundOn = true;
     let darkMode = false;
     let orderCart = [];
     let currentTotal = 0;
     let paidAmount = 0;
     let ecoBagQuantity = 0;
-    const ECO_BAG_PRICE = 5;
+    const ECO_BAG_PRICE = POSCore.ECO_BAG_PRICE;
     let activePaymentMethod = 'Cash';
     let gcashAmount = 0;
     let splitPayment = false;
@@ -71,25 +70,11 @@
     // ============================================================
     // UTILITY FUNCTIONS
     // ============================================================
-    function safeDisplay(text) {
-      if (!text) return '';
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-    function escapeHtmlAttr(text) {
-      return safeDisplay(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-    function jsStringArg(text) {
-      return escapeHtmlAttr(String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
-    }
-    function formatNumber(n) {
-      if (n === undefined || n === null) return '0';
-      return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-    function getToday() {
-      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
-    }
+    const safeDisplay = POSCore.escapeHtml;
+    const escapeHtmlAttr = POSCore.escapeHtmlAttr;
+    const jsStringArg = POSCore.jsStringArg;
+    const formatNumber = POSCore.formatNumber;
+    const getToday = POSCore.getToday;
     function getOrdersRef() {
       return db.ref('orders/' + getToday());
     }
@@ -607,7 +592,7 @@
       }
     }
     function updateOrderTotal() {
-      currentTotal = orderCart.reduce((sum, i) => sum + i.total, 0) + (ecoBagQuantity * ECO_BAG_PRICE);
+      currentTotal = POSCore.cartTotal(orderCart, ecoBagQuantity);
       document.getElementById('total-display').textContent = 'Total: ₱' + formatNumber(currentTotal);
       const pt = document.getElementById('payment-total');
       if (pt) pt.textContent = '₱' + formatNumber(currentTotal);
@@ -766,10 +751,9 @@
     function splitDigit(d) {
       if (!splitPayment) return;
       if (splitField === 'gcash') {
-        const na = gcashAmount * 10 + d;
-        gcashAmount = na > currentTotal ? currentTotal : na;
+        gcashAmount = Math.min(POSCore.applyDigit(gcashAmount, d), currentTotal);
       } else {
-        paidAmount = paidAmount * 10 + d;
+        paidAmount = POSCore.applyDigit(paidAmount, d);
       }
       renderSplitFieldDisplay();
       updateSplitDisplay();
@@ -779,9 +763,9 @@
     function splitBackspace() {
       if (!splitPayment) return;
       if (splitField === 'gcash') {
-        gcashAmount = Math.floor(gcashAmount / 10);
+        gcashAmount = POSCore.backspaceDigit(gcashAmount);
       } else {
-        paidAmount = Math.floor(paidAmount / 10);
+        paidAmount = POSCore.backspaceDigit(paidAmount);
       }
       renderSplitFieldDisplay();
       updateSplitDisplay();
@@ -803,7 +787,7 @@
     function splitAddQuick(a) {
       if (!splitPayment) return;
       if (splitField === 'gcash') {
-        gcashAmount = Math.min(currentTotal, gcashAmount + a);
+        gcashAmount = POSCore.addCapped(gcashAmount, a, currentTotal);
       } else {
         paidAmount += a;
       }
@@ -824,10 +808,11 @@
       document.getElementById('payment-modal').classList.remove('show');
     }
     function getCashRequired() {
-      if (splitPayment) {
-        return Math.max(0, currentTotal - gcashAmount);
-      }
-      return currentTotal;
+      return POSCore.getCashRequired({
+        splitPayment: splitPayment,
+        currentTotal: currentTotal,
+        gcashAmount: gcashAmount
+      });
     }
     function updatePaymentDisplay() {
       const required = getCashRequired();
@@ -870,7 +855,7 @@
         splitDigit(d);
         return;
       }
-      paidAmount = paidAmount * 10 + d;
+      paidAmount = POSCore.applyDigit(paidAmount, d);
       updatePaymentDisplay();
     }
     function paymentBackspace() {
@@ -878,7 +863,7 @@
         splitBackspace();
         return;
       }
-      paidAmount = Math.floor(paidAmount / 10);
+      paidAmount = POSCore.backspaceDigit(paidAmount);
       updatePaymentDisplay();
     }
     function paymentClear() {
@@ -892,14 +877,14 @@
     function handlePaymentSubmission() {
       if (isProcessing) return;
       isProcessing = true;
-      const required = getCashRequired();
-      if (splitPayment && gcashAmount === 0) {
-        showToast('❌ Enter GCash amount', 'Enter the GCash portion or use full Cash/GCash', 'error');
-        isProcessing = false;
-        return;
-      }
-      if (paidAmount < required) {
-        showToast('❌ Cash paid less than cash required', null, 'error');
+      const error = POSCore.canSubmitPayment({
+        splitPayment: splitPayment,
+        currentTotal: currentTotal,
+        gcashAmount: gcashAmount,
+        paidAmount: paidAmount
+      });
+      if (error) {
+        showToast('❌ ' + error, null, 'error');
         isProcessing = false;
         return;
       }
@@ -911,18 +896,11 @@
       const change = paidAmount - required;
       document.getElementById('result-change').textContent = '₱' + formatNumber(change);
       const list = document.getElementById('suggestion-list');
-      list.innerHTML = '';
-      let first = true;
-      for (const extra of (activePaymentMethod === 'GCash' ? [] : importantSuggestions)) {
-        const np = paidAmount + extra;
-        const nc = np - required;
-        if (nc > 0) {
-          list.innerHTML += `<div class="suggestion-item ${first ? 'best' : ''}" onclick="useSuggestion(${np})">
-            Pay ₱${formatNumber(np)} → Change ₱${formatNumber(nc)}
-          </div>`;
-          first = false;
-        }
-      }
+      list.innerHTML = POSCore.changeSuggestions(activePaymentMethod, paidAmount, required)
+        .map((s, i) => `<div class="suggestion-item${i === 0 ? ' best' : ''}" onclick="useSuggestion(${s.paid})">
+            Pay ₱${formatNumber(s.paid)} → Change ₱${formatNumber(s.change)}
+          </div>`)
+        .join('');
       document.getElementById('payment-modal').classList.remove('show');
       document.getElementById('result-modal').classList.add('show');
       play('calc');
@@ -960,8 +938,7 @@
       const counterRef = getMetaRef().child('orderCounter');
       return counterRef.transaction(current => (current || 0) + 1)
         .then(result => {
-          const newNum = result.snapshot.val();
-          return 'W' + String(newNum).padStart(4, '0');
+          return POSCore.generateOrderNumber(result.snapshot.val());
         });
     }
     function completeTransaction() {
@@ -1173,22 +1150,10 @@
       }
       getOrdersRef().child(id).update(updates)
         .then(() => {
-          // Check if order is now fully completed
-          const hasKitchen = (order.items || []).some(i => (i.category || 'Kitchen') !== 'PBQ');
-          const hasPbq = (order.items || []).some(i => (i.category || 'Kitchen') === 'PBQ');
-          const kitchenDone = (order.kitchenCompleted === true) || (section === 'kitchen' && !hasKitchen);
-          const pbqDone = (order.pbqCompleted === true) || (section === 'pbq' && !hasPbq);
-          let fullyCompleted = false;
-          if (section === 'kitchen') {
-            fullyCompleted = (!hasPbq || order.pbqCompleted === true);
-          } else if (section === 'pbq') {
-            fullyCompleted = (!hasKitchen || order.kitchenCompleted === true);
-          }
-          if (fullyCompleted && order.paid !== false) {
+          if (POSCore.shouldDeleteAfterCompletion(order, section)) {
             return deleteOrderFromFirebase(id);
-          } else {
-            return Promise.resolve();
           }
+          return Promise.resolve();
         })
         .then(() => {
           play('btn');
@@ -1233,7 +1198,7 @@
     }
     function updatePendingDisplay() {
       const c = document.getElementById('pending-orders');
-      const allPending = currentOrders.filter(o => o.type === 'pending' || o.paid === false);
+      const allPending = currentOrders.filter(o => POSCore.isPendingOrder(o));
       const term = getTabSearch('pending');
       const pending = allPending.filter(o => orderMatchesSearch(o, term) && orderMatchesTypeFilter(o, 'pending'));
       const bar = document.getElementById('pending-total-bar');
@@ -1245,14 +1210,12 @@
         if (bar) bar.style.display = 'none';
         return;
       }
-      let walkinTotal = 0, tawagTotal = 0, walkinCount = 0, tawagCount = 0;
-      let grandTotal = 0;
-      pending.forEach(o => {
-        const t = o.total || 0;
-        grandTotal += t;
-        if ((o.orderType || o.type || 'walkin') === 'tawag') { tawagTotal += t; tawagCount++; }
-        else { walkinTotal += t; walkinCount++; }
-      });
+      const totals = POSCore.pendingTotals(pending);
+      const grandTotal = totals.grandTotal;
+      const walkinTotal = totals.walkinTotal;
+      const tawagTotal = totals.tawagTotal;
+      const walkinCount = totals.walkinCount;
+      const tawagCount = totals.tawagCount;
       if (bar) {
         bar.style.display = 'block';
         bar.innerHTML =
@@ -1297,13 +1260,7 @@
     function updateKitchenDisplay() {
       const c = document.getElementById('kitchen-all-orders');
       // Show orders that have kitchen items and kitchen is not completed
-      const allKitchenOrders = currentOrders.filter(o => {
-        const items = o.items || [];
-        const hasKitchenItems = items.some(i => (i.category || 'Kitchen') !== 'PBQ');
-        const kitchenDone = o.kitchenCompleted === true;
-        const ot = o.orderType || o.type || 'walkin';
-        return hasKitchenItems && !kitchenDone && (o.paid !== false || ot === 'tawag');
-      });
+      const allKitchenOrders = currentOrders.filter(o => POSCore.stationVisible(o, 'kitchen'));
       const kTerm = getTabSearch('kitchen');
       const filteredKitchen = allKitchenOrders.filter(o => orderMatchesSearch(o, kTerm) && orderMatchesTypeFilter(o, 'kitchen'));
       const bar = document.getElementById('kitchen-total-bar');
@@ -1363,13 +1320,7 @@
     function updatePbqDisplay() {
       const c = document.getElementById('pbq-all-orders');
       // Show orders that have PBQ items and pbq is not completed
-      const allPbqOrders = currentOrders.filter(o => {
-        const items = o.items || [];
-        const hasPbqItems = items.some(i => (i.category || 'Kitchen') === 'PBQ');
-        const pbqDone = o.pbqCompleted === true;
-        const ot = o.orderType || o.type || 'walkin';
-        return hasPbqItems && !pbqDone && (o.paid !== false || ot === 'tawag');
-      });
+      const allPbqOrders = currentOrders.filter(o => POSCore.stationVisible(o, 'pbq'));
       const pTerm = getTabSearch('pbq');
       const pbqOrders = allPbqOrders.filter(o => orderMatchesSearch(o, pTerm) && orderMatchesTypeFilter(o, 'pbq'));
       updateTypeFilterCount('pbq', pbqOrders.length, allPbqOrders.length);
@@ -1461,31 +1412,13 @@
       if (input) input.focus();
     }
     function orderMatchesSearch(o, term) {
-      if (!term) return true;
-      const tokens = term.split(/\s+/).filter(Boolean);
-      const haystack = [
-        o.number || '',
-        o.customerName || '',
-        o.orderType === 'tawag' ? 'tawag' : 'walkin',
-        o.type === 'pending' ? 'pending' : '',
-        o.notes || '',
-        o.timestamp || '',
-        o.pickupTime || '',
-        (o.items || []).map(i => i.name || '').join(' ')
-      ].join(' ').toLowerCase();
-      return tokens.every(t => haystack.indexOf(t) !== -1);
+      return POSCore.orderMatchesSearch(o, term);
     }
     function menuItemMatchesSearch(item, term) {
-      if (!term) return true;
-      const tokens = term.split(/\s+/).filter(Boolean);
-      const haystack = `${item.name || ''} ${item.category || ''} ${item.price || ''}`.toLowerCase();
-      return tokens.every(t => haystack.indexOf(t) !== -1);
+      return POSCore.menuItemMatchesSearch(item, term);
     }
     function highlightMatch(text, term) {
-      const raw = String(text || '');
-      if (!term || !raw) return safeDisplay(raw);
-      const parts = raw.split(new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'ig'));
-      return parts.map((part, i) => i % 2 === 1 ? `<mark>${safeDisplay(part)}</mark>` : safeDisplay(part)).join('');
+      return POSCore.highlightMatch(text, term);
     }
     function renderSearchBar(tab, placeholder, chips) {
       const term = getTabSearch(tab);
@@ -1516,9 +1449,7 @@
       renderSearchResults(tab);
     }
     function orderMatchesTypeFilter(o, tab) {
-      const type = tabTypeFilters[tab].type;
-      if (type === 'all') return true;
-      return (o.orderType || o.type || 'walkin') === type;
+      return POSCore.orderMatchesTypeFilter(o, tabTypeFilters[tab].type);
     }
     function updateTypeFilterCount(tab, shown, total) {
       const el = document.getElementById(`filter-count-${tab}`);
@@ -1545,13 +1476,6 @@
     // ============================================================
     // END OF DAY
     // ============================================================
-    function csvCell(value) {
-      const s = String(value == null ? '' : value);
-      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    }
-    function itemsSummary(items) {
-      return (items || []).map(i => i.name + '×' + i.quantity).join('; ');
-    }
     async function endOfDay() {
       if (isProcessing) return;
       const today = getToday();
@@ -1560,40 +1484,17 @@
       showLoading('Exporting and clearing...');
       try {
         const histSnap = await getHistoryRef().once('value');
-        const histData = histSnap.val();
-        const sold = histData
-          ? Object.keys(histData).map(k => ({ id: k, ...histData[k] })).filter(t => t.date === today)
-          : [];
         const ordSnap = await getOrdersRef().once('value');
-        const ordData = ordSnap.val();
-        const open = ordData
-          ? Object.keys(ordData).map(k => ({ id: k, ...ordData[k] })).filter(o => o.date !== today || o.paid === false)
-          : [];
+        const rows = POSCore.selectEndOfDayRows(histSnap.val(), ordSnap.val(), today);
+        const sold = rows.sold;
+        const open = rows.open;
         if (!sold.length && !open.length) {
           showToast('📭 No sales recorded for ' + today, null, 'warning');
           isProcessing = false;
           hideLoading();
           return;
         }
-        const header = 'Time,Date,Order#,Type,Customer,Items,EcoBags,Total,Payment,CashTendered,GCash,Change,Status\n';
-        const lines = [];
-        sold.forEach(t => {
-          lines.push([
-            t.timestamp || '', t.date || '', t.number || '', t.orderType || t.type || 'walkin',
-            t.customerName || '', itemsSummary(t.items), t.ecoBags || 0,
-            t.total || 0, t.paymentMethod || 'Cash',
-            t.paymentMethod === 'Split' ? (t.cashAmount || 0) : (t.paid || 0),
-            t.gcashAmount || 0, t.change || 0, 'PAID'
-          ].map(csvCell).join(','));
-        });
-        open.forEach(o => {
-          lines.push([
-            o.timestamp || '', today, o.number || '', o.orderType || o.type || 'pending',
-            o.customerName || '', itemsSummary(o.items), o.ecoBags || 0,
-            o.total || 0, o.paymentMethod || 'pending', '', '', '', 'UNPAID'
-          ].map(csvCell).join(','));
-        });
-        const blob = new Blob([header + lines.join('\n') + '\n'], { type: 'text/csv' });
+        const blob = new Blob([POSCore.buildSalesCsv(sold, open, today)], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = 'sales_' + today + '.csv';
@@ -1651,19 +1552,12 @@
       });
     }
     function applySummaryFilters(rows) {
-      const dateFilter = document.getElementById('summary-date-filter').value;
-      const channel = document.getElementById('summary-filter').value;
-      let out = dateFilter === 'today' ? rows.filter(t => t.date === getToday()) : rows;
-      if (channel === 'walkin') {
-        out = out.filter(t => (t.orderType || t.type) === 'walkin' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
-      } else if (channel === 'tawag') {
-        out = out.filter(t => (t.orderType || t.type) === 'tawag' && t.paymentMethod !== 'GCash' && t.paymentMethod !== 'Split');
-      } else if (channel === 'gcash') {
-        out = out.filter(t => t.paymentMethod === 'GCash');
-      } else if (channel === 'split') {
-        out = out.filter(t => t.paymentMethod === 'Split');
-      }
-      return out;
+      return POSCore.applySummaryFilters(
+        rows,
+        document.getElementById('summary-date-filter').value,
+        document.getElementById('summary-filter').value,
+        getToday()
+      );
     }
     function showSummary() {
       getHistoryRef().once('value').then((snapshot) => {
@@ -1675,36 +1569,13 @@
         }
         const history = Object.keys(data).map(key => ({ id: key, ...data[key] }));
         const filtered = applySummaryFilters(history);
-        let cashTotal = 0, gcashTotal = 0;
-        filtered.forEach(t => {
-          if (t.paymentMethod === 'Split') {
-            gcashTotal += (t.gcashAmount || 0);
-            cashTotal += (t.cashAmount || 0);
-          } else if (t.paymentMethod === 'GCash') {
-            gcashTotal += (t.total || 0);
-          } else {
-            cashTotal += (t.total || 0);
-          }
-        });
-        const splitCount = filtered.filter(t => t.paymentMethod === 'Split').length;
-        let splitCash = 0, splitGcash = 0;
-        filtered.filter(t => t.paymentMethod === 'Split').forEach(t => {
-          splitCash += (t.cashAmount || 0);
-          splitGcash += (t.gcashAmount || 0);
-        });
-        const sales = {};
-        filtered.forEach(t => {
-          (t.items || []).forEach(i => {
-            if (!sales[i.name]) sales[i.name] = { qty: 0, total: 0 };
-            sales[i.name].qty += i.quantity;
-            sales[i.name].total += i.total;
-          });
-          if (t.ecoBags > 0) {
-            if (!sales['Eco Bag']) sales['Eco Bag'] = { qty: 0, total: 0 };
-            sales['Eco Bag'].qty += t.ecoBags;
-            sales['Eco Bag'].total += t.ecoBags * 5;
-          }
-        });
+        const totals = POSCore.summaryTotals(filtered);
+        const cashTotal = totals.cashTotal;
+        const gcashTotal = totals.gcashTotal;
+        const splitCount = totals.splitCount;
+        const splitCash = totals.splitCash;
+        const splitGcash = totals.splitGcash;
+        const sales = POSCore.itemSalesBreakdown(filtered).sales;
         let html = '<div class="summary-section-title">📊 Sales Breakdown</div>';
         if (sales && Object.keys(sales).length > 0) {
           html += '<table class="summary-table"><thead><tr><th>Item</th><th>Qty</th><th>Sales</th></tr></thead><tbody>';

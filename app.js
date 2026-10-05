@@ -1178,7 +1178,7 @@
           } else if (section === 'pbq') {
             fullyCompleted = (!hasKitchen || order.kitchenCompleted === true);
           }
-          if (fullyCompleted) {
+          if (fullyCompleted && order.paid !== false) {
             return deleteOrderFromFirebase(id);
           } else {
             return Promise.resolve();

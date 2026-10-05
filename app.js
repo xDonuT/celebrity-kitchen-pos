@@ -1545,44 +1545,68 @@
     // ============================================================
     // END OF DAY
     // ============================================================
-    function endOfDay() {
+    function csvCell(value) {
+      const s = String(value == null ? '' : value);
+      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    function itemsSummary(items) {
+      return (items || []).map(i => i.name + '×' + i.quantity).join('; ');
+    }
+    async function endOfDay() {
       if (isProcessing) return;
-      if (!confirm('Export today\'s sales and clear all orders?')) return;
+      const today = getToday();
+      if (!confirm('Export today\'s sales (from transaction history) and clear all open orders?')) return;
       isProcessing = true;
       showLoading('Exporting and clearing...');
-      getOrdersRef().once('value').then((snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-          showToast('📭 No orders to export today', null, 'warning');
+      try {
+        const histSnap = await getHistoryRef().once('value');
+        const histData = histSnap.val();
+        const sold = histData
+          ? Object.keys(histData).map(k => ({ id: k, ...histData[k] })).filter(t => t.date === today)
+          : [];
+        const ordSnap = await getOrdersRef().once('value');
+        const ordData = ordSnap.val();
+        const open = ordData
+          ? Object.keys(ordData).map(k => ({ id: k, ...ordData[k] })).filter(o => o.date !== today || o.paid === false)
+          : [];
+        if (!sold.length && !open.length) {
+          showToast('📭 No sales recorded for ' + today, null, 'warning');
           isProcessing = false;
           hideLoading();
           return;
         }
-        const orders = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        let csv = 'Order#,Type,Total,Payment,Time,Items\n';
-        orders.forEach(o => {
-          const items = (o.items || []).map(i => i.name + '×' + i.quantity).join('; ');
-          csv += (o.number || '') + ',' + (o.orderType || o.type) + ',' + (o.total || 0) + ',' + (o.paymentMethod || 'Cash') + ',' + (o.timestamp || '') + ',"' + items + '"\n';
+        const header = 'Time,Date,Order#,Type,Customer,Items,EcoBags,Total,Payment,CashTendered,GCash,Change,Status\n';
+        const lines = [];
+        sold.forEach(t => {
+          lines.push([
+            t.timestamp || '', t.date || '', t.number || '', t.orderType || t.type || 'walkin',
+            t.customerName || '', itemsSummary(t.items), t.ecoBags || 0,
+            t.total || 0, t.paymentMethod || 'Cash',
+            t.paymentMethod === 'Split' ? (t.cashAmount || 0) : (t.paid || 0),
+            t.gcashAmount || 0, t.change || 0, 'PAID'
+          ].map(csvCell).join(','));
         });
-        const blob = new Blob([csv], { type: 'text/csv' });
+        open.forEach(o => {
+          lines.push([
+            o.timestamp || '', today, o.number || '', o.orderType || o.type || 'pending',
+            o.customerName || '', itemsSummary(o.items), o.ecoBags || 0,
+            o.total || 0, o.paymentMethod || 'pending', '', '', '', 'UNPAID'
+          ].map(csvCell).join(','));
+        });
+        const blob = new Blob([header + lines.join('\n') + '\n'], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'sales_' + getToday() + '.csv';
+        a.download = 'sales_' + today + '.csv';
         a.click();
-        clearTodayOrders().then(() => {
-          showToast('✅ Orders cleared! CSV downloaded.', null, 'success');
-          isProcessing = false;
-          hideLoading();
-        }).catch((err) => {
-          showToast('❌ Error clearing orders: ' + err.message, null, 'error');
-          isProcessing = false;
-          hideLoading();
-        });
-      }).catch((err) => {
+        URL.revokeObjectURL(a.href);
+        await clearTodayOrders();
+        const unpaidNote = open.length ? ` (${open.length} still unpaid - see CSV)` : '';
+        showToast(`✅ ${sold.length} sales exported${unpaidNote}. Orders cleared.`, null, open.length ? 'warning' : 'success');
+      } catch (err) {
         showToast('❌ Error exporting: ' + err.message, null, 'error');
-        isProcessing = false;
-        hideLoading();
-      });
+      }
+      isProcessing = false;
+      hideLoading();
     }
     // ============================================================
     // HISTORY & SUMMARY

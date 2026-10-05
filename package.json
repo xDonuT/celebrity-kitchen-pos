@@ -4,7 +4,7 @@
   "private": true,
   "description": "Point-of-sale for Celebrity Kitchen. Static app; open onlinePOS.html to run.",
   "scripts": {
-    "test": "node tests/pos.test.js",
+    "test": "node tests/pos.test.js && node tests/endofday.test.js",
     "check": "node --check app.js"
   }
 }

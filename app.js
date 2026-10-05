@@ -1295,7 +1295,8 @@
         const items = o.items || [];
         const hasKitchenItems = items.some(i => (i.category || 'Kitchen') !== 'PBQ');
         const kitchenDone = o.kitchenCompleted === true;
-        return hasKitchenItems && !kitchenDone && (o.paid !== false); // only paid orders (or pending? we show all non-completed)
+        const ot = o.orderType || o.type || 'walkin';
+        return hasKitchenItems && !kitchenDone && (o.paid !== false || ot === 'tawag');
       });
       const kTerm = getTabSearch('kitchen');
       const filteredKitchen = allKitchenOrders.filter(o => orderMatchesSearch(o, kTerm) && orderMatchesTypeFilter(o, 'kitchen'));
@@ -1360,7 +1361,8 @@
         const items = o.items || [];
         const hasPbqItems = items.some(i => (i.category || 'Kitchen') === 'PBQ');
         const pbqDone = o.pbqCompleted === true;
-        return hasPbqItems && !pbqDone && (o.paid !== false);
+        const ot = o.orderType || o.type || 'walkin';
+        return hasPbqItems && !pbqDone && (o.paid !== false || ot === 'tawag');
       });
       const pTerm = getTabSearch('pbq');
       const pbqOrders = allPbqOrders.filter(o => orderMatchesSearch(o, pTerm) && orderMatchesTypeFilter(o, 'pbq'));

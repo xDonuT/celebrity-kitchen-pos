@@ -682,7 +682,7 @@
       const titleLabel = document.getElementById('payment-title-label');
       if (activePaymentMethod === 'GCash') {
         paidAmount = currentTotal;
-        calcContainer.style.display = 'grid';
+        calcContainer.style.display = 'none';
         submitBtn.textContent = '✅ Pay with GCash';
         submitBtn.style.background = '#007cfe';
         titleLabel.textContent = '📱 GCash Payment';
@@ -907,7 +907,7 @@
       const list = document.getElementById('suggestion-list');
       list.innerHTML = '';
       let first = true;
-      for (const extra of importantSuggestions) {
+      for (const extra of (activePaymentMethod === 'GCash' ? [] : importantSuggestions)) {
         const np = paidAmount + extra;
         const nc = np - required;
         if (nc > 0) {
@@ -1458,6 +1458,7 @@
       if (!term) return true;
       const tokens = term.split(/\s+/).filter(Boolean);
       const haystack = [
+        o.number || '',
         o.customerName || '',
         o.orderType === 'tawag' ? 'tawag' : 'walkin',
         o.type === 'pending' ? 'pending' : '',
@@ -1640,7 +1641,7 @@
           filtered = history.filter(t => t.paymentMethod === 'Split');
         }
         let cashTotal = 0, gcashTotal = 0;
-        history.forEach(t => {
+        filtered.forEach(t => {
           if (t.paymentMethod === 'Split') {
             gcashTotal += (t.gcashAmount || 0);
             cashTotal += (t.cashAmount || 0);
@@ -1650,9 +1651,9 @@
             cashTotal += (t.total || 0);
           }
         });
-        const splitCount = history.filter(t => t.paymentMethod === 'Split').length;
+        const splitCount = filtered.filter(t => t.paymentMethod === 'Split').length;
         let splitCash = 0, splitGcash = 0;
-        history.filter(t => t.paymentMethod === 'Split').forEach(t => {
+        filtered.filter(t => t.paymentMethod === 'Split').forEach(t => {
           splitCash += (t.cashAmount || 0);
           splitGcash += (t.gcashAmount || 0);
         });

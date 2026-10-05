@@ -82,7 +82,7 @@
       return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
     function getToday() {
-      return new Date().toISOString().split('T')[0];
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
     }
     function getOrdersRef() {
       return db.ref('orders/' + getToday());
